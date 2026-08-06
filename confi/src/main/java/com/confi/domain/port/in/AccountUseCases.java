@@ -19,6 +19,8 @@ public interface AccountUseCases {
             String nombre,
             AccountType tipo,
             BigDecimal saldoInicial,
-            BigDecimal limiteCredito
+            BigDecimal limiteCredito,
+            Integer diaCorte,
+            Integer diaPago
     ) {}
 }

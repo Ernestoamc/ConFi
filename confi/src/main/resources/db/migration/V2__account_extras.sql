@@ -1,0 +1,7 @@
+ALTER TABLE accounts ADD COLUMN dia_corte INT;
+ALTER TABLE accounts ADD COLUMN dia_pago INT;
+
+ALTER TABLE accounts ALTER COLUMN saldo TYPE NUMERIC(19,2);
+ALTER TABLE accounts ALTER COLUMN limite_credito TYPE NUMERIC(19,2);
+ALTER TABLE transactions ALTER COLUMN monto TYPE NUMERIC(19,2);
+ALTER TABLE budgets ALTER COLUMN monto_planeado TYPE NUMERIC(19,2);

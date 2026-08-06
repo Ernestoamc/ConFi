@@ -19,7 +19,8 @@ public class AccountService implements AccountUseCases {
     @Override
     public Account crear(CreateAccountCommand command) {
         Account account = Account.crearNueva(
-                command.nombre(), command.tipo(), command.saldoInicial(), command.limiteCredito());
+                command.nombre(), command.tipo(), command.saldoInicial(), command.limiteCredito(),
+                command.diaCorte(), command.diaPago());
         return accountRepository.save(account);
     }
 

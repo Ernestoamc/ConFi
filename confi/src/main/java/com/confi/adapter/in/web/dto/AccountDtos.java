@@ -14,7 +14,9 @@ public class AccountDtos {
             @NotBlank String nombre,
             @NotNull AccountType tipo,
             @NotNull @PositiveOrZero BigDecimal saldoInicial,
-            BigDecimal limiteCredito // requerido solo si tipo == CREDITO, se valida en el dominio
+            BigDecimal limiteCredito, 
+            Integer diaCorte, 
+            Integer diaPago           
     ) {}
 
     public record AccountResponse(
@@ -23,6 +25,8 @@ public class AccountDtos {
             AccountType tipo,
             BigDecimal saldo,
             BigDecimal limiteCredito,
+            Integer diaCorte,
+            Integer diaPago,
             boolean activa
     ) {}
 }

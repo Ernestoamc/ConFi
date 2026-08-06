@@ -31,7 +31,8 @@ public class AccountController {
     @Transactional
     public AccountResponse crear(@Valid @RequestBody CreateAccountRequest request) {
         Account creada = accountUseCases.crear(new CreateAccountCommand(
-                request.nombre(), request.tipo(), request.saldoInicial(), request.limiteCredito()));
+        request.nombre(), request.tipo(), request.saldoInicial(), request.limiteCredito(),
+        request.diaCorte(), request.diaPago()));
         return mapper.toResponse(creada);
     }
 

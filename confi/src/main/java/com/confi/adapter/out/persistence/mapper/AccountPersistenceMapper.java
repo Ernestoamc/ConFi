@@ -15,6 +15,8 @@ public class AccountPersistenceMapper {
                 AccountEntity.AccountTypeJpa.valueOf(account.getTipo().name()),
                 account.getSaldo(),
                 account.getLimiteCredito(),
+                account.getDiaCorte(),
+                account.getDiaPago(),
                 account.isActiva()
         );
     }
@@ -26,6 +28,8 @@ public class AccountPersistenceMapper {
                 AccountType.valueOf(entity.getTipo().name()),
                 entity.getSaldo(),
                 entity.getLimiteCredito(),
+                entity.getDiaCorte(),
+                entity.getDiaPago(),
                 entity.isActiva()
         );
     }

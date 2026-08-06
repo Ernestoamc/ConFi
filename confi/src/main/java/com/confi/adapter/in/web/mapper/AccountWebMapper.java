@@ -14,6 +14,8 @@ public class AccountWebMapper {
                 account.getTipo(),
                 account.getSaldo(),
                 account.getLimiteCredito(),
+                account.getDiaCorte(),
+                account.getDiaPago(),
                 account.isActiva()
         );
     }
