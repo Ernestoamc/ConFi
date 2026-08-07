@@ -19,11 +19,13 @@ public class TransactionPersistenceMapper {
                 transaction.getCuentaDestinoId(),
                 transaction.getCategoriaId(),
                 transaction.getContraparte(),
-                transaction.getSubscripcionId()
+                transaction.getSubscripcionId(),
+                transaction.getSaldoOrigenDespues(),
+                transaction.getSaldoDestinoDespues()
         );
     }
 
-    /** Reconstruye el objeto de dominio desde la entity, preservando el id original. */
+    /** Reconstruye el objeto de dominio desde la entity, preservando el id original y los saldos históricos. */
     public Transaction toDomain(TransactionEntity entity) {
         TransactionType tipo = TransactionType.valueOf(entity.getTipo().name());
         return Transaction.reconstruir(
@@ -36,7 +38,9 @@ public class TransactionPersistenceMapper {
                 entity.getCuentaDestinoId(),
                 entity.getCategoriaId(),
                 entity.getContraparte(),
-                entity.getSubscripcionId()
+                entity.getSubscripcionId(),
+                entity.getSaldoOrigenDespues(),
+                entity.getSaldoDestinoDespues()
         );
     }
 }

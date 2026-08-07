@@ -9,13 +9,6 @@ import com.confi.domain.port.out.TransactionRepository;
 import java.time.Instant;
 import java.util.NoSuchElementException;
 
-/**
- * Implementación del caso de uso central: registrar un movimiento y
- * actualizar los saldos de las cuentas involucradas de forma consistente.
- *
- * Nótese que esta clase NO importa nada de Spring: es Java puro.
- * @Transactional se aplica en el adapter/config, no aquí.
- */
 public class RegisterTransactionService implements RegisterTransactionUseCase {
 
     private final TransactionRepository transactionRepository;
@@ -33,9 +26,10 @@ public class RegisterTransactionService implements RegisterTransactionUseCase {
 
         Transaction transaction = switch (command.tipo()) {
             case GASTO -> Transaction.gasto(command.monto(), command.nota(),
-                    command.cuentaOrigenId(), command.categoriaId(), fecha);
+                    command.cuentaOrigenId(), command.categoriaId(), command.contraparte(), 
+                    command.subscripcionId(), fecha);
             case INGRESO -> Transaction.ingreso(command.monto(), command.nota(),
-                    command.cuentaOrigenId(), command.categoriaId(), fecha);
+                    command.cuentaOrigenId(), command.categoriaId(), command.contraparte(), fecha);
             case TRANSFERENCIA -> command.cuentaDestinoId() != null
                     ? Transaction.transferenciaEntreCuentasPropias(command.monto(), command.nota(),
                         command.cuentaOrigenId(), command.cuentaDestinoId(), fecha)
@@ -43,25 +37,26 @@ public class RegisterTransactionService implements RegisterTransactionUseCase {
                         command.cuentaOrigenId(), command.contraparte(), fecha);
         };
 
-        aplicarEfectosEnCuentas(transaction);
+        aplicarEfectosEnCuentasYRegistrarSaldos(transaction);
 
         return transactionRepository.save(transaction);
     }
 
-    private void aplicarEfectosEnCuentas(Transaction transaction) {
+    private void aplicarEfectosEnCuentasYRegistrarSaldos(Transaction transaction) {
         Account cuentaOrigen = buscarCuenta(transaction.getCuentaOrigenId());
 
         switch (transaction.getTipo()) {
             case GASTO -> {
                 cuentaOrigen.aplicarMovimiento(transaction.getMonto().negate());
                 accountRepository.save(cuentaOrigen);
+                transaction.registrarSaldosResultantes(cuentaOrigen.getSaldo(), null);
             }
             case INGRESO -> {
                 cuentaOrigen.aplicarMovimiento(transaction.getMonto());
                 accountRepository.save(cuentaOrigen);
+                transaction.registrarSaldosResultantes(cuentaOrigen.getSaldo(), null);
             }
             case TRANSFERENCIA -> {
-                // Sale dinero de la cuenta origen en ambos casos (interna o a tercero)
                 cuentaOrigen.aplicarMovimiento(transaction.getMonto().negate());
                 accountRepository.save(cuentaOrigen);
 
@@ -69,8 +64,10 @@ public class RegisterTransactionService implements RegisterTransactionUseCase {
                     Account cuentaDestino = buscarCuenta(transaction.getCuentaDestinoId());
                     cuentaDestino.aplicarMovimiento(transaction.getMonto());
                     accountRepository.save(cuentaDestino);
+                    transaction.registrarSaldosResultantes(cuentaOrigen.getSaldo(), cuentaDestino.getSaldo());
+                } else {
+                    transaction.registrarSaldosResultantes(cuentaOrigen.getSaldo(), null);
                 }
-                // Si es a un tercero, el dinero simplemente sale del sistema: no hay cuenta destino que actualizar.
             }
         }
     }

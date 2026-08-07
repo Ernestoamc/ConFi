@@ -17,7 +17,9 @@ public class TransactionWebMapper {
                 transaction.getCuentaOrigenId(),
                 transaction.getCuentaDestinoId(),
                 transaction.getCategoriaId(),
-                transaction.getContraparte()
+                transaction.getContraparte(),
+                transaction.getSaldoOrigenDespues(),
+                transaction.getSaldoDestinoDespues()
         );
     }
 }

@@ -8,10 +8,17 @@ import java.util.UUID;
  * Representa un movimiento de dinero: gasto, ingreso o transferencia.
  *
  * Casos que cubre:
- *  - GASTO: sale dinero de cuentaOrigenId, se clasifica con categoriaId.
+ *  - GASTO: sale dinero de cuentaOrigenId, se clasifica con categoriaId. Puede tener
+ *    contraparte opcional (ej. "le presté a Juan" categorizado como gasto).
  *  - INGRESO: entra dinero a cuentaOrigenId (aquí actúa como "cuenta destino"), con categoriaId.
+ *    Puede tener contraparte opcional (ej. "Juan me depositó $500").
  *  - TRANSFERENCIA entre cuentas propias: cuentaOrigenId y cuentaDestinoId ambos presentes.
- *  - TRANSFERENCIA a/de terceros: cuentaDestinoId es null, se usa contraparte (nombre de la persona).
+ *  - TRANSFERENCIA a/de terceros: cuentaDestinoId es null, se usa contraparte (obligatoria aquí).
+ *
+ * saldoOrigenDespues / saldoDestinoDespues: el saldo de cada cuenta INMEDIATAMENTE después
+ * de este movimiento. Se registran al momento de aplicar el movimiento (no son recalculables
+ * después de forma confiable si hay ediciones/borrados), y es lo que permite mostrar un
+ * historial estilo estado de cuenta: "gastaste X, te quedaron Y".
  */
 public class Transaction {
 
@@ -23,8 +30,10 @@ public class Transaction {
     private final UUID cuentaOrigenId;
     private final UUID cuentaDestinoId; // solo TRANSFERENCIA entre cuentas propias
     private final UUID categoriaId;     // solo GASTO / INGRESO
-    private final String contraparte;   // solo TRANSFERENCIA a terceros
+    private final String contraparte;   // persona involucrada: obligatoria en transferencia a terceros, opcional en gasto/ingreso
     private final UUID subscripcionId;  // opcional, referencia a un pago recurrente
+    private BigDecimal saldoOrigenDespues;   // se fija al aplicar el movimiento
+    private BigDecimal saldoDestinoDespues;  // solo transferencias internas; se fija al aplicar el movimiento
 
     private Transaction(UUID id, Instant fecha, BigDecimal monto, String nota, TransactionType tipo,
                          UUID cuentaOrigenId, UUID cuentaDestinoId, UUID categoriaId,
@@ -64,22 +73,23 @@ public class Transaction {
             if (categoriaId == null) {
                 throw new IllegalArgumentException("Un " + tipo + " requiere categoría");
             }
-            if (cuentaDestinoId != null || (contraparte != null && !contraparte.isBlank())) {
-                throw new IllegalArgumentException("Un " + tipo + " no lleva cuenta destino ni contraparte");
+            if (cuentaDestinoId != null) {
+                throw new IllegalArgumentException("Un " + tipo + " no lleva cuenta destino");
             }
+            // contraparte es válida y opcional aquí (ej. "Juan me depositó", "le presté a Juan")
         }
     }
 
     public static Transaction gasto(BigDecimal monto, String nota, UUID cuentaOrigenId,
-                                     UUID categoriaId, Instant fecha) {
+                                     UUID categoriaId, String contraparte, UUID subscripcionId, Instant fecha) {
         return new Transaction(UUID.randomUUID(), fecha, monto, nota, TransactionType.GASTO,
-                cuentaOrigenId, null, categoriaId, null, null);
+                cuentaOrigenId, null, categoriaId, contraparte, subscripcionId);
     }
 
     public static Transaction ingreso(BigDecimal monto, String nota, UUID cuentaDestinoId,
-                                       UUID categoriaId, Instant fecha) {
+                                       UUID categoriaId, String contraparte, Instant fecha) {
         return new Transaction(UUID.randomUUID(), fecha, monto, nota, TransactionType.INGRESO,
-                cuentaDestinoId, null, categoriaId, null, null);
+                cuentaDestinoId, null, categoriaId, contraparte, null);
     }
 
     public static Transaction transferenciaEntreCuentasPropias(BigDecimal monto, String nota,
@@ -97,12 +107,36 @@ public class Transaction {
         return new Transaction(UUID.randomUUID(), fecha, monto, nota, TransactionType.TRANSFERENCIA,
                 cuentaOrigenId, null, null, contraparte, null);
     }
+
+    /**
+     * Reconstruye una Transaction ya existente (ej. leída de la base de datos),
+     * preservando su id original y los saldos ya registrados. NO usar para crear
+     * transacciones nuevas: para eso usa gasto(), ingreso(), transferenciaEntreCuentasPropias()
+     * o transferenciaATercero().
+     */
     public static Transaction reconstruir(UUID id, Instant fecha, BigDecimal monto, String nota,
-                                       TransactionType tipo, UUID cuentaOrigenId, UUID cuentaDestinoId,
-                                       UUID categoriaId, String contraparte, UUID subscripcionId) {
-    return new Transaction(id, fecha, monto, nota, tipo, cuentaOrigenId, cuentaDestinoId,
-            categoriaId, contraparte, subscripcionId);
-}
+                                           TransactionType tipo, UUID cuentaOrigenId, UUID cuentaDestinoId,
+                                           UUID categoriaId, String contraparte, UUID subscripcionId,
+                                           BigDecimal saldoOrigenDespues, BigDecimal saldoDestinoDespues) {
+        Transaction transaction = new Transaction(id, fecha, monto, nota, tipo, cuentaOrigenId, cuentaDestinoId,
+                categoriaId, contraparte, subscripcionId);
+        transaction.saldoOrigenDespues = saldoOrigenDespues;
+        transaction.saldoDestinoDespues = saldoDestinoDespues;
+        return transaction;
+    }
+
+    /**
+     * Registra los saldos resultantes tras aplicar este movimiento a las cuentas involucradas.
+     * Se llama UNA vez, desde el servicio de dominio, justo después de mutar las cuentas y
+     * antes de persistir la transacción. saldoDestino solo aplica si esTransferenciaInterna().
+     */
+    public void registrarSaldosResultantes(BigDecimal saldoOrigenDespues, BigDecimal saldoDestinoDespues) {
+        if (this.saldoOrigenDespues != null) {
+            throw new IllegalStateException("Los saldos resultantes ya fueron registrados para esta transacción");
+        }
+        this.saldoOrigenDespues = saldoOrigenDespues;
+        this.saldoDestinoDespues = saldoDestinoDespues;
+    }
 
     /** true si esta transferencia mueve dinero entre dos cuentas propias del usuario */
     public boolean esTransferenciaInterna() {
@@ -119,4 +153,6 @@ public class Transaction {
     public UUID getCategoriaId() { return categoriaId; }
     public String getContraparte() { return contraparte; }
     public UUID getSubscripcionId() { return subscripcionId; }
+    public BigDecimal getSaldoOrigenDespues() { return saldoOrigenDespues; }
+    public BigDecimal getSaldoDestinoDespues() { return saldoDestinoDespues; }
 }

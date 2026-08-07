@@ -42,6 +42,7 @@ public class TransactionController {
                 request.cuentaDestinoId(),
                 request.categoriaId(),
                 request.contraparte(),
+                null,
                 request.fecha()
         ));
         return mapper.toResponse(registrada);

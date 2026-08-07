@@ -17,7 +17,7 @@ public class TransactionDtos {
             @NotNull UUID cuentaOrigenId,
             UUID cuentaDestinoId,  // transferencia entre cuentas propias
             UUID categoriaId,      // gasto/ingreso
-            String contraparte,    // transferencia a terceros
+            String contraparte,    // transferencia a terceros, o gasto/ingreso con persona involucrada
             Instant fecha          // opcional, si es null se usa "ahora"
     ) {}
 
@@ -30,6 +30,8 @@ public class TransactionDtos {
             UUID cuentaOrigenId,
             UUID cuentaDestinoId,
             UUID categoriaId,
-            String contraparte
+            String contraparte,
+            BigDecimal saldoOrigenDespues,
+            BigDecimal saldoDestinoDespues
     ) {}
 }

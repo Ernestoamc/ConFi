@@ -16,7 +16,7 @@ public class TransactionEntity {
     @Column(nullable = false)
     private Instant fecha;
 
-    @Column(nullable = false, precision = 19, scale = 4)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal monto;
 
     private String nota;
@@ -39,12 +39,19 @@ public class TransactionEntity {
     @Column(name = "subscripcion_id")
     private UUID subscripcionId;
 
+    @Column(name = "saldo_origen_despues", precision = 19, scale = 2)
+    private BigDecimal saldoOrigenDespues;
+
+    @Column(name = "saldo_destino_despues", precision = 19, scale = 2)
+    private BigDecimal saldoDestinoDespues;
+
     protected TransactionEntity() {
     }
 
     public TransactionEntity(UUID id, Instant fecha, BigDecimal monto, String nota, TransactionTypeJpa tipo,
                               UUID cuentaOrigenId, UUID cuentaDestinoId, UUID categoriaId,
-                              String contraparte, UUID subscripcionId) {
+                              String contraparte, UUID subscripcionId,
+                              BigDecimal saldoOrigenDespues, BigDecimal saldoDestinoDespues) {
         this.id = id;
         this.fecha = fecha;
         this.monto = monto;
@@ -55,6 +62,8 @@ public class TransactionEntity {
         this.categoriaId = categoriaId;
         this.contraparte = contraparte;
         this.subscripcionId = subscripcionId;
+        this.saldoOrigenDespues = saldoOrigenDespues;
+        this.saldoDestinoDespues = saldoDestinoDespues;
     }
 
     public enum TransactionTypeJpa { GASTO, INGRESO, TRANSFERENCIA }
@@ -69,4 +78,6 @@ public class TransactionEntity {
     public UUID getCategoriaId() { return categoriaId; }
     public String getContraparte() { return contraparte; }
     public UUID getSubscripcionId() { return subscripcionId; }
+    public BigDecimal getSaldoOrigenDespues() { return saldoOrigenDespues; }
+    public BigDecimal getSaldoDestinoDespues() { return saldoDestinoDespues; }
 }

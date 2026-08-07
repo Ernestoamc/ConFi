@@ -19,6 +19,7 @@ public interface RegisterTransactionUseCase {
             UUID cuentaDestinoId,   // solo transferencia entre cuentas propias
             UUID categoriaId,       // solo gasto/ingreso
             String contraparte,     // solo transferencia a terceros
+            UUID subscripcionId,
             Instant fecha
     ) {}
 }
