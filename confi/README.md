@@ -36,13 +36,11 @@ Puedes usar `compose.yaml`:
 docker compose up -d
 ```
 
-Nota: actualmente el compose define credenciales por defecto:
+El `compose.yaml` ya viene alineado con los valores por defecto de la aplicacion:
 
-- DB: `mydatabase`
-- User: `myuser`
-- Password: `secret`
-
-Si usas ese compose tal cual, configura `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` para que coincidan.
+- DB: `confi`
+- User: `confi`
+- Password: `confi`
 
 ## Ejecutar la aplicacion
 
@@ -90,6 +88,12 @@ Estos endpoints estan expuestos por configuracion en `management.endpoints.web.e
 |---|---|---|
 | GET | /actuator/health | Estado de salud de la aplicacion. |
 | GET | /actuator/info | Informacion general de la aplicacion. |
+
+## Matriz de casos de uso
+
+Para pruebas funcionales por tipo de operacion, revisa la matriz completa:
+
+- [docs/matriz-casos-uso.md](docs/matriz-casos-uso.md)
 
 ## Ejemplo rapido de creacion de cuenta
 

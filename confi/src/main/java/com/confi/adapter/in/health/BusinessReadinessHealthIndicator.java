@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.YearMonth;
 
-@Component("businessReadiness")
+@Component("business-readiness")
 public class BusinessReadinessHealthIndicator implements HealthIndicator {
 
     private final AccountUseCases accountUseCases;
