@@ -5,6 +5,7 @@ import com.confi.domain.model.Transaction;
 import com.confi.domain.port.in.RegisterTransactionUseCase;
 import com.confi.domain.port.out.AccountRepository;
 import com.confi.domain.port.out.TransactionRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.NoSuchElementException;
@@ -21,6 +22,7 @@ public class RegisterTransactionService implements RegisterTransactionUseCase {
     }
 
     @Override
+    @Transactional
     public Transaction execute(RegisterTransactionCommand command) {
         Instant fecha = command.fecha() != null ? command.fecha() : Instant.now();
 

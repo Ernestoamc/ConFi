@@ -12,4 +12,5 @@ public interface SubscriptionChargeRepository {
     Optional<SubscriptionCharge> findById(UUID id);
     List<SubscriptionCharge> findByMesAndAnio(int mes, int anio);
     boolean existsBySubscripcionAndMesAnio(UUID subscripcionId, int mes, int anio);
+    Optional<SubscriptionCharge> findLastBySubscripcionId(UUID subscripcionId);
 }

@@ -3,13 +3,14 @@ spring:
     name: confi
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/confi
-    username: confi
-    password: confi
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/confi}
+    username: ${DB_USERNAME:confi}
+    password: ${DB_PASSWORD:confi}
 
   jpa:
+    open-in-view: false
     hibernate:
-      ddl-auto: validate   # el schema lo maneja Flyway, no Hibernate
+      ddl-auto: validate 
     show-sql: true
     properties:
       hibernate:

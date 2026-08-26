@@ -5,8 +5,10 @@ import com.confi.domain.model.SubscriptionCharge;
 import com.confi.domain.port.in.GenerateMonthlyChargesUseCase;
 import com.confi.domain.port.out.SubscriptionChargeRepository;
 import com.confi.domain.port.out.SubscriptionRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +25,15 @@ public class GenerateMonthlyChargesService implements GenerateMonthlyChargesUseC
     }
 
     @Override
+    @Transactional
     public List<SubscriptionCharge> execute(int mes, int anio) {
+        if (mes < 1 || mes > 12) {
+            throw new IllegalArgumentException("Mes inválido: " + mes);
+        }
+        if (anio < 1900) {
+            throw new IllegalArgumentException("Año inválido: " + anio);
+        }
+
         List<SubscriptionCharge> generados = new ArrayList<>();
         YearMonth periodo = YearMonth.of(anio, mes);
 
@@ -31,6 +41,10 @@ public class GenerateMonthlyChargesService implements GenerateMonthlyChargesUseC
             boolean yaExiste = chargeRepository.existsBySubscripcionAndMesAnio(subscription.getId(), mes, anio);
             if (yaExiste) {
                 continue; // idempotente: no duplicar cargos si ya se generó este mes
+            }
+
+            if (!debeGenerarSegunFrecuencia(subscription, periodo)) {
+                continue;
             }
 
             // Si el día de cobro no existe en este mes (ej. 31 en febrero), usa el último día del mes.
@@ -43,5 +57,31 @@ public class GenerateMonthlyChargesService implements GenerateMonthlyChargesUseC
         }
 
         return generados;
+    }
+
+    private boolean debeGenerarSegunFrecuencia(Subscription subscription, YearMonth periodoActual) {
+        return chargeRepository.findLastBySubscripcionId(subscription.getId())
+                .map(last -> {
+                    YearMonth ultimoPeriodo = YearMonth.from(last.getFechaEsperada());
+                    int monthsElapsed = monthsBetween(ultimoPeriodo, periodoActual);
+                    return monthsElapsed >= mesesRequeridos(subscription.getFrecuencia());
+                })
+                .orElse(true);
+    }
+
+    private static int monthsBetween(YearMonth from, YearMonth to) {
+        if (to.isBefore(from)) {
+            return 0;
+        }
+        Period period = Period.between(from.atDay(1), to.atDay(1));
+        return period.getYears() * 12 + period.getMonths();
+    }
+
+    private static int mesesRequeridos(Subscription.Frecuencia frecuencia) {
+        return switch (frecuencia) {
+            case MENSUAL -> 1;
+            case BIMESTRAL -> 2;
+            case ANUAL -> 12;
+        };
     }
 }

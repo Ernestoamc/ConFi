@@ -4,6 +4,8 @@ import com.confi.domain.model.Subscription;
 import com.confi.domain.model.Subscription.Frecuencia;
 import com.confi.domain.port.in.SubscriptionUseCases;
 import com.confi.domain.port.in.SubscriptionUseCases.CreateSubscriptionCommand;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -52,7 +54,7 @@ public class SubscriptionController {
             @NotBlank String nombre,
             @NotNull @Positive BigDecimal montoEstimado,
             @NotNull Frecuencia frecuencia,
-            int diaCobro,
+                @Min(1) @Max(31) int diaCobro,
             @NotNull UUID cuentaId,
             @NotNull UUID categoriaId
     ) {}

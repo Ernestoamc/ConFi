@@ -4,8 +4,10 @@ import com.confi.domain.model.SubscriptionCharge;
 import com.confi.domain.model.SubscriptionCharge.Estado;
 import com.confi.domain.port.in.GenerateMonthlyChargesUseCase;
 import com.confi.domain.port.in.SubscriptionChargeUseCases;
-import org.springframework.transaction.annotation.Transactional;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,6 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/subscription-charges")
+@Validated
 public class SubscriptionChargeController {
 
     private final GenerateMonthlyChargesUseCase generateMonthlyChargesUseCase;
@@ -27,17 +30,20 @@ public class SubscriptionChargeController {
 
     /** Genera los cargos PENDIENTES del mes para cada suscripción activa (idempotente). */
     @PostMapping("/generar")
-    public List<SubscriptionChargeResponse> generar(@RequestParam int mes, @RequestParam int anio) {
+    public List<SubscriptionChargeResponse> generar(
+            @RequestParam @Min(1) @Max(12) int mes,
+            @RequestParam @Min(1900) int anio) {
         return generateMonthlyChargesUseCase.execute(mes, anio).stream().map(this::toResponse).toList();
     }
 
     @GetMapping
-    public List<SubscriptionChargeResponse> listarPorMes(@RequestParam int mes, @RequestParam int anio) {
+    public List<SubscriptionChargeResponse> listarPorMes(
+            @RequestParam @Min(1) @Max(12) int mes,
+            @RequestParam @Min(1900) int anio) {
         return subscriptionChargeUseCases.listarPorMes(mes, anio).stream().map(this::toResponse).toList();
     }
 
     @PostMapping("/{id}/confirmar")
-    @Transactional
     public SubscriptionChargeResponse confirmar(@PathVariable UUID id) {
         return toResponse(subscriptionChargeUseCases.confirmar(id));
     }

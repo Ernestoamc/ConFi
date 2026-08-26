@@ -3,6 +3,7 @@ package com.confi.domain.service;
 import com.confi.domain.model.Account;
 import com.confi.domain.port.in.AccountUseCases;
 import com.confi.domain.port.out.AccountRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -17,6 +18,7 @@ public class AccountService implements AccountUseCases {
     }
 
     @Override
+    @Transactional
     public Account crear(CreateAccountCommand command) {
         Account account = Account.crearNueva(
                 command.nombre(), command.tipo(), command.saldoInicial(), command.limiteCredito(),
@@ -25,11 +27,13 @@ public class AccountService implements AccountUseCases {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Account> listarActivas() {
         return accountRepository.findAllActive();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Account obtener(UUID id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Cuenta no encontrada: " + id));

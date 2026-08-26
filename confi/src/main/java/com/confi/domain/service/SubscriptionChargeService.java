@@ -9,6 +9,7 @@ import com.confi.domain.port.in.RegisterTransactionUseCase.RegisterTransactionCo
 import com.confi.domain.port.in.SubscriptionChargeUseCases;
 import com.confi.domain.port.out.SubscriptionChargeRepository;
 import com.confi.domain.port.out.SubscriptionRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -31,11 +32,13 @@ public class SubscriptionChargeService implements SubscriptionChargeUseCases {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SubscriptionCharge> listarPorMes(int mes, int anio) {
         return chargeRepository.findByMesAndAnio(mes, anio);
     }
 
     @Override
+    @Transactional
     public SubscriptionCharge confirmar(UUID chargeId) {
         SubscriptionCharge charge = buscarCharge(chargeId);
         Subscription subscription = subscriptionRepository.findById(charge.getSubscripcionId())
@@ -60,6 +63,7 @@ public class SubscriptionChargeService implements SubscriptionChargeUseCases {
     }
 
     @Override
+    @Transactional
     public SubscriptionCharge omitir(UUID chargeId) {
         SubscriptionCharge charge = buscarCharge(chargeId);
         charge.omitir();

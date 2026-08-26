@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface SubscriptionChargeJpaRepository extends JpaRepository<SubscriptionChargeEntity, UUID> {
@@ -12,4 +13,6 @@ public interface SubscriptionChargeJpaRepository extends JpaRepository<Subscript
     List<SubscriptionChargeEntity> findByFechaEsperadaBetween(LocalDate desde, LocalDate hasta);
 
     boolean existsBySubscripcionIdAndFechaEsperadaBetween(UUID subscripcionId, LocalDate desde, LocalDate hasta);
+
+    Optional<SubscriptionChargeEntity> findTopBySubscripcionIdOrderByFechaEsperadaDesc(UUID subscripcionId);
 }

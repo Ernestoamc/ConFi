@@ -1,6 +1,7 @@
 package com.confi.domain.model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 public class Subscription {
@@ -18,12 +19,27 @@ public class Subscription {
 
     public Subscription(UUID id, String nombre, BigDecimal montoEstimado, Frecuencia frecuencia,
                          int diaCobro, UUID cuentaId, UUID categoriaId, boolean activa) {
+        if (nombre == null || nombre.isBlank()) {
+            throw new IllegalArgumentException("El nombre de la suscripción no puede estar vacío");
+        }
+        if (montoEstimado == null || montoEstimado.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El monto estimado debe ser mayor a cero");
+        }
+        if (frecuencia == null) {
+            throw new IllegalArgumentException("La frecuencia es obligatoria");
+        }
+        if (cuentaId == null) {
+            throw new IllegalArgumentException("La cuenta es obligatoria");
+        }
+        if (categoriaId == null) {
+            throw new IllegalArgumentException("La categoría es obligatoria");
+        }
         if (diaCobro < 1 || diaCobro > 31) {
             throw new IllegalArgumentException("Día de cobro inválido: " + diaCobro);
         }
         this.id = id;
-        this.nombre = nombre;
-        this.montoEstimado = montoEstimado;
+        this.nombre = nombre.trim();
+        this.montoEstimado = montoEstimado.setScale(2, RoundingMode.HALF_UP);
         this.frecuencia = frecuencia;
         this.diaCobro = diaCobro;
         this.cuentaId = cuentaId;

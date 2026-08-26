@@ -47,4 +47,10 @@ public class SubscriptionChargeRepositoryAdapter implements SubscriptionChargeRe
         return jpaRepository.existsBySubscripcionIdAndFechaEsperadaBetween(
                 subscripcionId, periodo.atDay(1), periodo.atEndOfMonth());
     }
+
+    @Override
+    public Optional<SubscriptionCharge> findLastBySubscripcionId(UUID subscripcionId) {
+        return jpaRepository.findTopBySubscripcionIdOrderByFechaEsperadaDesc(subscripcionId)
+                .map(mapper::toDomain);
+    }
 }

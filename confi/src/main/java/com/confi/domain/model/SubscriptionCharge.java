@@ -15,7 +15,7 @@ public class SubscriptionCharge{
     private UUID transactionId;
 
     public SubscriptionCharge(UUID id, UUID subscripcionId, LocalDate fechaEsperada,
-        BigDecimal montoEsperado, Estado estado, UUID transactionID){
+        BigDecimal montoEsperado, Estado estado, UUID transactionId){
             if(subscripcionId == null){
                 throw new IllegalArgumentException("subscripcionId es obligatorio");
             }
@@ -23,6 +23,9 @@ public class SubscriptionCharge{
                 throw new IllegalArgumentException("fechaEsperada es obligatoria");
             }
             if(montoEsperado == null){
+                throw new IllegalArgumentException("montoEsperado debe ser mayor a cero");
+            }
+            if(montoEsperado.compareTo(BigDecimal.ZERO) <= 0){
                 throw new IllegalArgumentException("montoEsperado debe ser mayor a cero");
             }
             this.id = id;

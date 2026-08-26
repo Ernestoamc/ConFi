@@ -8,7 +8,6 @@ import com.confi.domain.port.in.AccountUseCases;
 import com.confi.domain.port.in.AccountUseCases.CreateAccountCommand;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +27,6 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Transactional
     public AccountResponse crear(@Valid @RequestBody CreateAccountRequest request) {
         Account creada = accountUseCases.crear(new CreateAccountCommand(
         request.nombre(), request.tipo(), request.saldoInicial(), request.limiteCredito(),
