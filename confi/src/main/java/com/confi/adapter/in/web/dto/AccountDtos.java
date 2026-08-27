@@ -29,4 +29,8 @@ public class AccountDtos {
             Integer diaPago,
             boolean activa
     ) {}
+
+    public record UpdateAccountRequest(
+            @NotBlank String nombre
+    ) {}
 }

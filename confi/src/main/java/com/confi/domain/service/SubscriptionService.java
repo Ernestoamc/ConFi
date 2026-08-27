@@ -40,4 +40,13 @@ public class SubscriptionService implements SubscriptionUseCases {
         subscription.pausar();
         subscriptionRepository.save(subscription);
     }
+
+    @Override
+    @Transactional
+    public void reactivar(UUID id) {
+        Subscription subscription = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Suscripción no encontrada: " + id));
+        subscription.reactivar();
+        subscriptionRepository.save(subscription);
+    }
 }

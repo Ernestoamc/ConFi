@@ -2,6 +2,7 @@ package com.confi.adapter.in.web;
 
 import com.confi.adapter.in.web.dto.AccountDtos.AccountResponse;
 import com.confi.adapter.in.web.dto.AccountDtos.CreateAccountRequest;
+import com.confi.adapter.in.web.dto.AccountDtos.UpdateAccountRequest;
 import com.confi.adapter.in.web.mapper.AccountWebMapper;
 import com.confi.domain.model.Account;
 import com.confi.domain.port.in.AccountUseCases;
@@ -42,5 +43,20 @@ public class AccountController {
     @GetMapping("/{id}")
     public AccountResponse obtener(@PathVariable UUID id) {
         return mapper.toResponse(accountUseCases.obtener(id));
+    }
+
+    @PatchMapping("/{id}")
+    public AccountResponse renombrar(@PathVariable UUID id, @Valid @RequestBody UpdateAccountRequest request) {
+        return mapper.toResponse(accountUseCases.renombrar(id, request.nombre()));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public AccountResponse desactivar(@PathVariable UUID id) {
+        return mapper.toResponse(accountUseCases.desactivar(id));
+    }
+
+    @PatchMapping("/{id}/reactivar")
+    public AccountResponse reactivar(@PathVariable UUID id) {
+        return mapper.toResponse(accountUseCases.reactivar(id));
     }
 }

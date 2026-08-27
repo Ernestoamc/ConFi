@@ -1,6 +1,7 @@
 package com.confi.adapter.in.web.dto;
 
 import com.confi.domain.model.TransactionType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -33,5 +34,13 @@ public class TransactionDtos {
             String contraparte,
             BigDecimal saldoOrigenDespues,
             BigDecimal saldoDestinoDespues
+    ) {}
+
+    public record UpdateTransactionNoteRequest(
+            @NotBlank String nota
+    ) {}
+
+    public record CancelTransactionRequest(
+            String motivo
     ) {}
 }

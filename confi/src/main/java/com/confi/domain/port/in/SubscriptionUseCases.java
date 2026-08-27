@@ -12,6 +12,7 @@ public interface SubscriptionUseCases {
     Subscription crear(CreateSubscriptionCommand command);
     List<Subscription> listarActivas();
     void pausar(UUID id);
+    void reactivar(UUID id);
 
     record CreateSubscriptionCommand(
             String nombre,

@@ -25,7 +25,7 @@ public class Transaction {
     private final UUID id;
     private final Instant fecha;
     private final BigDecimal monto; // siempre positivo, el signo lo decide el tipo
-    private final String nota;
+    private String nota;
     private final TransactionType tipo;
     private final UUID cuentaOrigenId;
     private final UUID cuentaDestinoId; // solo TRANSFERENCIA entre cuentas propias
@@ -136,6 +136,13 @@ public class Transaction {
         }
         this.saldoOrigenDespues = saldoOrigenDespues;
         this.saldoDestinoDespues = saldoDestinoDespues;
+    }
+
+    public void actualizarNota(String nuevaNota) {
+        if (nuevaNota == null || nuevaNota.isBlank()) {
+            throw new IllegalArgumentException("La nota no puede estar vacía");
+        }
+        this.nota = nuevaNota.trim();
     }
 
     /** true si esta transferencia mueve dinero entre dos cuentas propias del usuario */

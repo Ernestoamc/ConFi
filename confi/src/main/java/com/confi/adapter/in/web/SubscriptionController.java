@@ -45,6 +45,11 @@ public class SubscriptionController {
         subscriptionUseCases.pausar(id);
     }
 
+    @PatchMapping("/{id}/reactivar")
+    public void reactivar(@PathVariable UUID id) {
+        subscriptionUseCases.reactivar(id);
+    }
+
     private SubscriptionResponse toResponse(Subscription s) {
         return new SubscriptionResponse(s.getId(), s.getNombre(), s.getMontoEstimado(),
                 s.getFrecuencia(), s.getDiaCobro(), s.getCuentaId(), s.getCategoriaId(), s.isActiva());

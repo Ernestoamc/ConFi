@@ -38,4 +38,28 @@ public class AccountService implements AccountUseCases {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Cuenta no encontrada: " + id));
     }
+
+    @Override
+    @Transactional
+    public Account renombrar(UUID id, String nuevoNombre) {
+        Account account = obtener(id);
+        account.renombrar(nuevoNombre);
+        return accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public Account desactivar(UUID id) {
+        Account account = obtener(id);
+        account.desactivar();
+        return accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public Account reactivar(UUID id) {
+        Account account = obtener(id);
+        account.reactivar();
+        return accountRepository.save(account);
+    }
 }

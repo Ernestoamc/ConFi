@@ -24,9 +24,9 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 | Crear cuenta credito | Disponible | `POST /api/accounts` |
 | Consultar todas las cuentas activas | Disponible | `GET /api/accounts` |
 | Consultar cuenta individual por id | Disponible | `GET /api/accounts/{id}` |
-| Editar nombre de cuenta | No expuesto por API | N/A |
-| Desactivar cuenta | No expuesto por API | N/A |
-| Reactivar cuenta | No expuesto por API | N/A |
+| Editar nombre de cuenta | Disponible | `PATCH /api/accounts/{id}` |
+| Desactivar cuenta | Disponible | `PATCH /api/accounts/{id}/desactivar` |
+| Reactivar cuenta | Disponible | `PATCH /api/accounts/{id}/reactivar` |
 
 ### 1.2 Movimientos de dinero
 
@@ -37,13 +37,14 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 | Traspaso entre cuentas propias | Disponible (`tipo=TRANSFERENCIA` + `cuentaDestinoId`) | `POST /api/transactions` |
 | Transferencia a tercero | Disponible (`tipo=TRANSFERENCIA` + `contraparte`) | `POST /api/transactions` |
 | Recibir dinero de terceros | Disponible (se registra como `INGRESO` con `contraparte`) | `POST /api/transactions` |
-| Registrar retiro de efectivo desde cuenta bancaria | No expuesto por API como caso dedicado (se puede registrar como gasto) | N/A |
-| Registrar gasto en efectivo informativo sin afectar saldos bancarios | No expuesto por API | N/A |
-| Historial/listado de transacciones | No expuesto por API | N/A |
-| Estado de cuenta por cuenta (cargo/abono + saldo acumulado) | No expuesto por API | N/A |
-| Estado de cuenta general consolidado | No expuesto por API | N/A |
-| Editar transaccion | No expuesto por API | N/A |
-| Eliminar transaccion | No expuesto por API | N/A |
+| Registrar retiro de efectivo desde cuenta bancaria | Disponible | `POST /api/cash/withdrawals` |
+| Registrar gasto en efectivo informativo sin afectar saldos bancarios | Disponible | `POST /api/cash/transactions` |
+| Listar flujo de efectivo informativo por periodo | Disponible | `GET /api/cash/transactions?desde={f1}&hasta={f2}` |
+| Historial/listado de transacciones | Disponible | `GET /api/transactions?desde={f1}&hasta={f2}&cuentaId={id?}` |
+| Estado de cuenta por cuenta (cargo/abono + saldo acumulado) | Disponible | `GET /api/accounts/{id}/statement?desde={f1}&hasta={f2}` |
+| Estado de cuenta general consolidado | Disponible | `GET /api/statement?desde={f1}&hasta={f2}` |
+| Editar transaccion (nota) | Disponible | `PATCH /api/transactions/{id}` |
+| Cancelar transaccion con reversa trazable | Disponible | `POST /api/transactions/{id}/cancel` |
 
 ### 1.3 Suscripciones y cargos
 
@@ -52,7 +53,7 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 | Crear suscripcion | Disponible | `POST /api/subscriptions` |
 | Listar suscripciones activas | Disponible | `GET /api/subscriptions` |
 | Pausar suscripcion | Disponible | `PATCH /api/subscriptions/{id}/pausar` |
-| Reactivar suscripcion | No expuesto por API | N/A |
+| Reactivar suscripcion | Disponible | `PATCH /api/subscriptions/{id}/reactivar` |
 | Generar cargos del mes | Disponible | `POST /api/subscription-charges/generar?mes={mes}&anio={anio}` |
 | Listar cargos por periodo | Disponible | `GET /api/subscription-charges?mes={mes}&anio={anio}` |
 | Confirmar cargo | Disponible | `POST /api/subscription-charges/{id}/confirmar` |
@@ -78,8 +79,8 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 
 | Operacion | Estado actual API | Endpoint |
 |---|---|---|
-| Estado de resultados por cuenta (ingresos - gastos) | No expuesto por API | N/A |
-| Estado de resultados general consolidado | Parcial en dominio (caso de uso mensual), no expuesto por API | N/A |
+| Estado de resultados por cuenta (ingresos - gastos) | Disponible | `GET /api/reports/income-statement?desde={f1}&hasta={f2}&cuentaId={id}` |
+| Estado de resultados general consolidado | Disponible | `GET /api/reports/income-statement?desde={f1}&hasta={f2}` |
 
 ## 2) Reglas Clave de Cuentas Debito y Credito
 
@@ -270,27 +271,13 @@ Estos casos no existen hoy por endpoint, pero quedan definidos para validar impl
 
 | ID | Caso | Endpoint propuesto | Metodo | Precondicion | Resultado esperado |
 |---|---|---|---|---|---|
-| PEND-ACC-01 | Desactivar cuenta | /api/accounts/{id}/desactivar | PATCH | Cuenta existente | `200`, `activa=false` |
-| PEND-ACC-02 | Reactivar cuenta | /api/accounts/{id}/reactivar | PATCH | Cuenta existente | `200`, `activa=true` |
-| PEND-ACC-03 | Editar nombre/parametros de cuenta | /api/accounts/{id} | PUT/PATCH | Cuenta existente | `200` con cuenta actualizada |
-| PEND-TX-01 | Listar transacciones por cuenta y periodo | /api/transactions?cuentaId={id}&desde={f1}&hasta={f2} | GET | Cuenta existente | `200` con movimientos ordenados |
-| PEND-TX-02 | Estado de cuenta por cuenta con cargo/abono y saldo acumulado | /api/accounts/{id}/statement?desde={f1}&hasta={f2} | GET | Cuenta con movimientos | `200` con detalle y saldo inicial/final |
-| PEND-TX-03 | Estado de cuenta general consolidado | /api/statement?desde={f1}&hasta={f2} | GET | Usuario con multiples cuentas | `200` con consolidado y subtotales por cuenta |
-| PEND-TX-04 | Editar transaccion | /api/transactions/{id} | PATCH/PUT | Transaccion existente | `200` con movimiento ajustado y trazabilidad |
-| PEND-TX-05 | Eliminar/cancelar transaccion | /api/transactions/{id} | DELETE | Transaccion existente | `200/204` y movimiento reversado o anulado |
-| PEND-CASH-01 | Registrar retiro de efectivo (sale de debito/credito) | /api/cash/withdrawals | POST | Cuenta existente con saldo o limite disponible | `201` y afectacion de saldo de cuenta origen |
-| PEND-CASH-02 | Registrar gasto en efectivo informativo (no afecta saldos bancarios) | /api/cash/transactions | POST | Ninguna | `201` y solo registro analitico |
-| PEND-CASH-03 | Listar flujo de efectivo informativo por periodo | /api/cash/transactions?desde={f1}&hasta={f2} | GET | Ninguna | `200` con cargos/abonos de efectivo |
-| PEND-CASH-04 | Incluir o excluir movimientos informativos de efectivo en reportes | /api/reports/*?includeInformativeCash=true|false | GET | Ninguna | `200` con resultado consistente segun bandera |
-| PEND-SUB-01 | Reactivar suscripcion pausada | /api/subscriptions/{id}/reactivar | PATCH | Suscripcion pausada | `200` |
+| PEND-TX-05 | Cancelar transaccion con reversa trazable (sin borrado fisico) | /api/transactions/{id}/cancel | POST | Transaccion existente no cancelada | `200` con transaccion reversa generada |
 | PEND-BUD-01 | Crear presupuesto mensual | /api/budgets | POST | Categoria valida | `201` |
 | PEND-BUD-02 | Listar presupuestos por periodo | /api/budgets?mes={mes}&anio={anio} | GET | Ninguna | `200` |
 | PEND-BUD-03 | Ajustar presupuesto mensual | /api/budgets/{id} | PATCH | Presupuesto existente | `200` |
 | PEND-BUD-04 | Presupuesto quincenal | /api/budgets/biweekly | POST/GET | Definir reglas de quincena | `201/200` |
 | PEND-BUD-05 | Presupuesto semanal | /api/budgets/weekly | POST/GET | Definir reglas de semana | `201/200` |
 | PEND-BUD-06 | Reporte planeado vs real por mes/quincena/semana | /api/reports/budget-vs-actual | GET | Presupuestos y movimientos cargados | `200` |
-| PEND-RES-01 | Estado de resultados por cuenta | /api/reports/income-statement?cuentaId={id}&desde={f1}&hasta={f2} | GET | Cuenta existente y movimientos en periodo | `200` con ingresos, gastos y resultado neto |
-| PEND-RES-02 | Estado de resultados general consolidado | /api/reports/income-statement?desde={f1}&hasta={f2} | GET | Movimientos en multiples cuentas | `200` con totales globales y desglose por cuenta |
 
 ### Detalle funcional requerido para estado de cuenta (PEND-TX-02 / PEND-TX-03)
 
@@ -363,10 +350,10 @@ Estas operaciones existen como necesidad funcional pero no tienen endpoint actua
 
 | Area | Pendiente |
 |---|---|
-| Cuentas | Editar cuenta, desactivar cuenta, reactivar cuenta |
-| Transacciones | Historial por cuenta/periodo, edicion/cancelacion, estado de cuenta por cuenta, estado de cuenta general |
-| Efectivo | Retiro de efectivo dedicado, registro informativo de efectivo, inclusion/exclusion en reportes |
-| Resultados | Estado de resultados por cuenta y consolidado general |
+| Cuentas | Sin pendientes V5 base |
+| Transacciones | Ajustar politica de edicion completa de transaccion (hoy solo nota) |
+| Efectivo | Sin pendientes de V2; evaluar refinamientos de negocio por cuenta para efectivo informativo |
+| Resultados | Sin pendientes V4 base; faltan extensiones de desglose por categoria/cuenta en reporte avanzado |
 | Suscripciones | Reactivar suscripcion pausada |
 | Presupuestos | Crear/listar/ajustar presupuesto mensual, soporte quincenal/semanal, reporte planeado vs real |
 | Catalogos | CRUD de categorias |
@@ -377,20 +364,21 @@ Estas operaciones existen como necesidad funcional pero no tienen endpoint actua
 Orden sugerido para maximizar valor rapido con bajo riesgo:
 
 1. V1 Control y trazabilidad bancaria:
-  - PEND-TX-01, PEND-TX-02, PEND-TX-03.
+  - Implementado: listado por periodo y estados de cuenta por cuenta/general.
   - Resultado: historial y estado de cuenta confiable por cuenta y general.
 2. V2 Efectivo hibrido (como pediste):
-  - PEND-CASH-01, PEND-CASH-02, PEND-CASH-03, PEND-CASH-04.
+  - Implementado: PEND-CASH-01, PEND-CASH-02, PEND-CASH-03.
+  - Implementado: PEND-CASH-04 via bandera `includeInformativeCash` en estado de resultados.
   - Resultado: retiros reales + gastos en efectivo informativos sin duplicar impacto.
 3. V3 Planeacion financiera:
   - PEND-BUD-01 a PEND-BUD-06.
   - Resultado: presupuesto mensual/quincenal/semanal y seguimiento contra real.
 4. V4 Resultado financiero personal:
-  - PEND-RES-01, PEND-RES-02.
+  - Implementado: PEND-RES-01, PEND-RES-02.
   - Resultado: vision ejecutiva de ingresos, gastos y neto por cuenta y global.
 5. V5 Operacion madura:
-  - PEND-ACC-01, PEND-ACC-02, PEND-ACC-03, PEND-TX-04, PEND-TX-05, PEND-SUB-01.
-  - Resultado: ciclo completo de mantenimiento y correcciones operativas.
+  - Implementado: mantenimiento base de cuentas, reactivacion de suscripcion, mantenimiento de transacciones (nota + cancelacion con reversa).
+  - Resultado: ciclo operativo trazable sin borrado destructivo.
 6. V6 Madurez de producto (sin conciliacion por ahora):
   - PEND-PROD-01 a PEND-PROD-10.
   - Resultado: app robusta para uso diario y largo plazo.

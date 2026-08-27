@@ -15,6 +15,12 @@ public interface AccountUseCases {
 
     Account obtener(UUID id);
 
+    Account renombrar(UUID id, String nuevoNombre);
+
+    Account desactivar(UUID id);
+
+    Account reactivar(UUID id);
+
     record CreateAccountCommand(
             String nombre,
             AccountType tipo,

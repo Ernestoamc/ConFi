@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -28,8 +29,19 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
+    public Optional<Transaction> findById(UUID id) {
+        return jpaRepository.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
     public List<Transaction> findByPeriodo(Instant desde, Instant hasta) {
         return jpaRepository.findByFechaBetween(desde, hasta).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Transaction> findByCuentaAndPeriodo(UUID cuentaId, Instant desde, Instant hasta) {
+        return jpaRepository.findByCuentaAndFechaBetween(cuentaId, desde, hasta)
+                .stream().map(mapper::toDomain).toList();
     }
 
     @Override
