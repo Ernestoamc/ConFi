@@ -2,16 +2,22 @@ package com.confi.domain.service;
 
 import com.confi.domain.model.Account;
 import com.confi.domain.model.AccountType;
+import com.confi.domain.model.Budget;
+import com.confi.domain.model.DomainEvent;
 import com.confi.domain.model.Transaction;
 import com.confi.domain.model.TransactionType;
 import com.confi.domain.port.in.RegisterTransactionUseCase.RegisterTransactionCommand;
 import com.confi.domain.port.out.AccountRepository;
+import com.confi.domain.port.out.BudgetRepository;
+import com.confi.domain.port.out.DomainEventPublisher;
 import com.confi.domain.port.out.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +35,7 @@ class RegisterTransactionServiceTest {
 
     private AccountRepository accountRepository;
     private TransactionRepository transactionRepository;
+        private DomainEventPublisher domainEventPublisher;
     private RegisterTransactionService service;
 
     private final UUID categoria = UUID.randomUUID();
@@ -37,7 +44,8 @@ class RegisterTransactionServiceTest {
     void setUp() {
         accountRepository = mock(AccountRepository.class);
         transactionRepository = mock(TransactionRepository.class);
-        service = new RegisterTransactionService(transactionRepository, accountRepository);
+        domainEventPublisher = mock(DomainEventPublisher.class);
+        service = new RegisterTransactionService(transactionRepository, accountRepository, domainEventPublisher);
 
         when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -153,4 +161,60 @@ class RegisterTransactionServiceTest {
         verify(transactionRepository).save(captor.capture());
         assertThat(captor.getValue().getFecha()).isNotNull();
     }
+
+        @Test
+        void publicaAlertaCuandoSaldoDebitoQuedaPorDebajoDelUmbral() {
+                Account cuenta = Account.crearNueva("BBVA Debito", AccountType.DEBITO,
+                                new BigDecimal("600.00"), null, null, null);
+                when(accountRepository.findById(cuenta.getId())).thenReturn(Optional.of(cuenta));
+
+                service.execute(new RegisterTransactionCommand(
+                                TransactionType.GASTO, new BigDecimal("150.00"), "Super",
+                                cuenta.getId(), null, categoria, null, null, null));
+
+                ArgumentCaptor<DomainEvent> captor = ArgumentCaptor.forClass(DomainEvent.class);
+                verify(domainEventPublisher, atLeast(1)).publish(captor.capture());
+
+                List<DomainEvent> events = captor.getAllValues();
+                assertThat(events).extracting(DomainEvent::eventType)
+                                .contains("transaction.created", "account.low.balance");
+        }
+
+            @Test
+            void publicaAlertaCuandoSeExcedePresupuestoDeCategoria() {
+                Account cuenta = Account.crearNueva("BBVA Debito", AccountType.DEBITO,
+                        new BigDecimal("1000.00"), null, null, null);
+                when(accountRepository.findById(cuenta.getId())).thenReturn(Optional.of(cuenta));
+
+                BudgetRepository budgetRepository = mock(BudgetRepository.class);
+                RegisterTransactionService serviceWithBudget = new RegisterTransactionService(
+                        transactionRepository,
+                        accountRepository,
+                        domainEventPublisher,
+                        budgetRepository,
+                        null,
+                        new BigDecimal("500.00")
+                );
+
+                UUID categoriaId = UUID.randomUUID();
+                YearMonth ym = YearMonth.now(java.time.ZoneOffset.UTC);
+                Budget budget = Budget.crearNuevo(ym.getMonthValue(), ym.getYear(), categoriaId, new BigDecimal("300.00"));
+                when(budgetRepository.findByCategoriaMesAnio(categoriaId, ym.getMonthValue(), ym.getYear()))
+                        .thenReturn(Optional.of(budget));
+
+                when(transactionRepository.findByCategoriaAndPeriodo(eq(categoriaId), any(), any()))
+                        .thenAnswer(inv -> List.of(
+                                Transaction.gasto(new BigDecimal("200.00"), "A", cuenta.getId(), categoriaId, null, null, java.time.Instant.now()),
+                                Transaction.gasto(new BigDecimal("250.00"), "B", cuenta.getId(), categoriaId, null, null, java.time.Instant.now())
+                        ));
+
+                serviceWithBudget.execute(new RegisterTransactionCommand(
+                        TransactionType.GASTO, new BigDecimal("250.00"), "B",
+                        cuenta.getId(), null, categoriaId, null, null, java.time.Instant.now()));
+
+                ArgumentCaptor<DomainEvent> captor = ArgumentCaptor.forClass(DomainEvent.class);
+                verify(domainEventPublisher, atLeast(1)).publish(captor.capture());
+                assertThat(captor.getAllValues()).extracting(DomainEvent::eventType)
+                        .contains("budget.threshold.exceeded");
+            }
 }

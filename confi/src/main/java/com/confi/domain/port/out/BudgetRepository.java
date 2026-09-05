@@ -10,6 +10,8 @@ public interface BudgetRepository {
 
     Budget save(Budget budget);
 
+    Optional<Budget> findById(UUID id);
+
     List<Budget> findByMesAndAnio(int mes, int anio);
 
     Optional<Budget> findByCategoriaMesAnio(UUID categoriaId, int mes, int anio);

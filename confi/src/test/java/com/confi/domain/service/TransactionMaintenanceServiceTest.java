@@ -14,8 +14,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class TransactionMaintenanceServiceTest {
@@ -53,9 +58,43 @@ class TransactionMaintenanceServiceTest {
 
         TransactionMaintenanceService service = new TransactionMaintenanceService(txRepo, registerUseCase, reversalRepo);
 
-        Transaction result = service.cancelar(txId, "Error captura");
+        Transaction result = service.cancelar(txId, "Error captura", null);
 
         assertEquals(TransactionType.INGRESO, result.getTipo());
         assertEquals(new BigDecimal("100.00"), result.getMonto());
+    }
+
+    @Test
+    void bloqueaCancelacionCuandoPeriodoEstaCerrado() {
+        TransactionRepository txRepo = mock(TransactionRepository.class);
+        RegisterTransactionUseCase registerUseCase = mock(RegisterTransactionUseCase.class);
+        TransactionReversalRepository reversalRepo = mock(TransactionReversalRepository.class);
+        PeriodCloseService periodCloseService = mock(PeriodCloseService.class);
+
+        UUID txId = UUID.randomUUID();
+        Transaction original = Transaction.gasto(
+                new BigDecimal("100.00"),
+                "Compra",
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                null,
+                null,
+                Instant.now()
+        );
+
+        when(txRepo.findById(txId)).thenReturn(Optional.of(original));
+        doThrow(new IllegalStateException("Periodo cerrado"))
+                .when(periodCloseService)
+                .ensureOpen(eq(original.getFecha()), eq("cancelacion de transacciones"));
+
+        TransactionMaintenanceService service = new TransactionMaintenanceService(
+                txRepo,
+                registerUseCase,
+                reversalRepo,
+                periodCloseService
+        );
+
+        assertThrows(IllegalStateException.class, () -> service.cancelar(txId, "Error captura", null));
+        verify(registerUseCase, never()).execute(any());
     }
 }

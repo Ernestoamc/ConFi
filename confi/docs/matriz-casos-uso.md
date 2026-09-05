@@ -34,6 +34,7 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 |---|---|---|
 | Registrar gasto | Disponible | `POST /api/transactions` |
 | Registrar ingreso | Disponible | `POST /api/transactions` |
+| Buscar transacciones con filtros avanzados | Disponible | `GET /api/transactions/search` |
 | Traspaso entre cuentas propias | Disponible (`tipo=TRANSFERENCIA` + `cuentaDestinoId`) | `POST /api/transactions` |
 | Transferencia a tercero | Disponible (`tipo=TRANSFERENCIA` + `contraparte`) | `POST /api/transactions` |
 | Recibir dinero de terceros | Disponible (se registra como `INGRESO` con `contraparte`) | `POST /api/transactions` |
@@ -44,6 +45,7 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 | Estado de cuenta por cuenta (cargo/abono + saldo acumulado) | Disponible | `GET /api/accounts/{id}/statement?desde={f1}&hasta={f2}` |
 | Estado de cuenta general consolidado | Disponible | `GET /api/statement?desde={f1}&hasta={f2}` |
 | Editar transaccion (nota) | Disponible | `PATCH /api/transactions/{id}` |
+| Reemplazo seguro de transaccion (edicion completa con recalculo) | Disponible | `PUT /api/transactions/{id}` |
 | Cancelar transaccion con reversa trazable | Disponible | `POST /api/transactions/{id}/cancel` |
 
 ### 1.3 Suscripciones y cargos
@@ -63,17 +65,43 @@ Este documento describe todo lo que hoy puedes hacer por API en ConFi, con foco 
 
 | Operacion | Estado actual API | Endpoint |
 |---|---|---|
+| Crear regla de categorizacion automatica | Disponible | `POST /api/categorization-rules` |
+| Listar reglas de categorizacion | Disponible | `GET /api/categorization-rules` |
+| Activar/desactivar regla de categorizacion | Disponible | `PATCH /api/categorization-rules/{id}/activate`, `PATCH /api/categorization-rules/{id}/deactivate` |
+| Resolver categoria por texto (preview) | Disponible | `GET /api/categorization-rules/resolve?text={txt}` |
+
+### 1.8 Exportaciones y respaldo
+
+| Operacion | Estado actual API | Endpoint |
+|---|---|---|
+| Exportar transacciones CSV | Disponible | `GET /api/exports/transactions.csv?desde={f1}&hasta={f2}&cuentaId={id?}` |
+| Backup de notificaciones | Disponible | `GET /api/backups/notifications` |
+| Restore de notificaciones | Disponible | `POST /api/restores/notifications` |
+
+### 1.9 Alertas y recordatorios
+
+| Operacion | Estado actual API | Endpoint |
+|---|---|---|
+| Alerta automatica de saldo bajo (debito) | Disponible por evento | `account.low.balance` |
+| Alerta automatica de presupuesto excedido | Disponible por evento | `budget.threshold.exceeded` |
+| Recordatorio de cargo de suscripcion proximo a vencer | Disponible por evento | `subscription.charge.due.soon` |
+
+### 1.10 Observabilidad
+
+| Operacion | Estado actual API | Endpoint |
+|---|---|---|
 | Health | Disponible | `GET /actuator/health` |
 | Info | Disponible | `GET /actuator/info` |
+| Consultar bandeja local de notificaciones de eventos | Disponible | `GET /api/notifications?limit={1..200}` |
 
 ### 1.5 Planeacion y presupuesto
 
 | Operacion | Estado actual API | Endpoint |
 |---|---|---|
-| Presupuesto mensual por categoria | No expuesto por API | N/A |
-| Presupuesto quincenal por categoria | No modelado/no expuesto por API | N/A |
-| Presupuesto semanal por categoria | No modelado/no expuesto por API | N/A |
-| Comparativo planeado vs real por periodo | Parcial en dominio (caso de uso mensual), no expuesto por API | N/A |
+| Presupuesto mensual por categoria | Disponible | `POST /api/budgets`, `GET /api/budgets?mes={mes}&anio={anio}`, `PATCH /api/budgets/{id}` |
+| Presupuesto quincenal por categoria | Disponible | `POST /api/budgets/biweekly`, `GET /api/budgets/biweekly?desde={f1}&hasta={f2}` |
+| Presupuesto semanal por categoria | Disponible | `POST /api/budgets/weekly`, `GET /api/budgets/weekly?desde={f1}&hasta={f2}` |
+| Comparativo planeado vs real por periodo | Disponible | `GET /api/reports/budget-vs-actual?desde={f1}&hasta={f2}&scope={MENSUAL|SEMANAL|QUINCENAL|TODOS}` |
 
 ### 1.6 Analitica financiera
 
@@ -223,6 +251,7 @@ Content-Type: application/json
 | SUB-04 | Listar suscripciones activas | /api/subscriptions | GET | Ninguna | `200` |
 | SUB-05 | Pausar suscripcion existente | /api/subscriptions/{id}/pausar | PATCH | Suscripcion existente | `200` (sin body) |
 | SUB-06 | Pausar suscripcion inexistente | /api/subscriptions/{id}/pausar | PATCH | Id inexistente | `404` |
+| SUB-07 | Reactivar suscripcion existente | /api/subscriptions/{id}/reactivar | PATCH | Suscripcion pausada | `200` (sin body) |
 
 ### Request ejemplo SUB-01
 
@@ -271,13 +300,7 @@ Estos casos no existen hoy por endpoint, pero quedan definidos para validar impl
 
 | ID | Caso | Endpoint propuesto | Metodo | Precondicion | Resultado esperado |
 |---|---|---|---|---|---|
-| PEND-TX-05 | Cancelar transaccion con reversa trazable (sin borrado fisico) | /api/transactions/{id}/cancel | POST | Transaccion existente no cancelada | `200` con transaccion reversa generada |
-| PEND-BUD-01 | Crear presupuesto mensual | /api/budgets | POST | Categoria valida | `201` |
-| PEND-BUD-02 | Listar presupuestos por periodo | /api/budgets?mes={mes}&anio={anio} | GET | Ninguna | `200` |
-| PEND-BUD-03 | Ajustar presupuesto mensual | /api/budgets/{id} | PATCH | Presupuesto existente | `200` |
-| PEND-BUD-04 | Presupuesto quincenal | /api/budgets/biweekly | POST/GET | Definir reglas de quincena | `201/200` |
-| PEND-BUD-05 | Presupuesto semanal | /api/budgets/weekly | POST/GET | Definir reglas de semana | `201/200` |
-| PEND-BUD-06 | Reporte planeado vs real por mes/quincena/semana | /api/reports/budget-vs-actual | GET | Presupuestos y movimientos cargados | `200` |
+| PEND-TX-07 | Reemplazo seguro en transferencias a terceros requiere `categoriaReversaId` al cancelar/reemplazar | /api/transactions/{id}/cancel, /api/transactions/{id} | POST/PUT | Transferencia a tercero | `200` con reversa consistente |
 
 ### Detalle funcional requerido para estado de cuenta (PEND-TX-02 / PEND-TX-03)
 
@@ -351,13 +374,13 @@ Estas operaciones existen como necesidad funcional pero no tienen endpoint actua
 | Area | Pendiente |
 |---|---|
 | Cuentas | Sin pendientes V5 base |
-| Transacciones | Ajustar politica de edicion completa de transaccion (hoy solo nota) |
+| Transacciones | Reglas UX para reemplazo/cancelacion de transferencias a terceros (`categoriaReversaId`) |
 | Efectivo | Sin pendientes de V2; evaluar refinamientos de negocio por cuenta para efectivo informativo |
 | Resultados | Sin pendientes V4 base; faltan extensiones de desglose por categoria/cuenta en reporte avanzado |
-| Suscripciones | Reactivar suscripcion pausada |
-| Presupuestos | Crear/listar/ajustar presupuesto mensual, soporte quincenal/semanal, reporte planeado vs real |
+| Suscripciones | Sin pendientes V5 base |
+| Presupuestos | Reglas avanzadas de validacion/calendario (feriados/cortes personalizados) |
 | Catalogos | CRUD de categorias |
-| Producto | Filtros avanzados, reglas automaticas, metas, alertas/recordatorios con Kafka, adjuntos, cierre mensual, backup/restore, exportacion, seguridad |
+| Producto | Filtros avanzados, reglas automaticas, metas, alertas/recordatorios (consumidores Kafka pendientes), adjuntos, cierre mensual, backup/restore, exportacion, seguridad |
 
 ## 6) Roadmap recomendado para "finanzas personales completas"
 
@@ -371,8 +394,9 @@ Orden sugerido para maximizar valor rapido con bajo riesgo:
   - Implementado: PEND-CASH-04 via bandera `includeInformativeCash` en estado de resultados.
   - Resultado: retiros reales + gastos en efectivo informativos sin duplicar impacto.
 3. V3 Planeacion financiera:
-  - PEND-BUD-01 a PEND-BUD-06.
-  - Resultado: presupuesto mensual/quincenal/semanal y seguimiento contra real.
+  - Implementado: presupuestos mensual/quincenal/semanal y reporte planeado vs real.
+  - Implementado: ajuste de presupuestos periodicos.
+  - Resultado: planeacion por periodo y seguimiento contra real habilitado.
 4. V4 Resultado financiero personal:
   - Implementado: PEND-RES-01, PEND-RES-02.
   - Resultado: vision ejecutiva de ingresos, gastos y neto por cuenta y global.
@@ -380,7 +404,8 @@ Orden sugerido para maximizar valor rapido con bajo riesgo:
   - Implementado: mantenimiento base de cuentas, reactivacion de suscripcion, mantenimiento de transacciones (nota + cancelacion con reversa).
   - Resultado: ciclo operativo trazable sin borrado destructivo.
 6. V6 Madurez de producto (sin conciliacion por ahora):
-  - PEND-PROD-01 a PEND-PROD-10.
+  - Implementado parcial: publicacion de eventos `transaction.created`, `subscription.charge.generated` y `subscription.charge.confirmed` con fallback no-op.
+  - Pendiente: consumidores (`notification-service`, `reminder-service`, `analytics-service`, `audit-service`) y casos PEND-PROD-01 a PEND-PROD-10.
   - Resultado: app robusta para uso diario y largo plazo.
 
 ## 7) Madurez de producto (pendientes priorizados)
@@ -391,10 +416,10 @@ Nota: por decision actual, se excluye conciliacion bancaria en esta etapa.
 
 | ID | Caso | Endpoint/Componente propuesto | Resultado esperado |
 |---|---|---|---|
-| PEND-PROD-01 | Filtros y busqueda avanzada de transacciones (monto, categoria, rango, contraparte, texto) | `GET /api/transactions/search` | Consultas rapidas y analisis diario eficiente |
-| PEND-PROD-02 | Reglas automaticas de categorizacion | `POST/GET /api/categorization-rules` | Menos trabajo manual al registrar movimientos |
+| PEND-PROD-01 | Filtros y busqueda avanzada de transacciones (monto, categoria, rango, contraparte, texto) | Implementado en `GET /api/transactions/search` | Consultas rapidas y analisis diario eficiente |
+| PEND-PROD-02 | Reglas automaticas de categorizacion | Implementado en `POST/GET /api/categorization-rules` + resolucion automatica al registrar gasto/ingreso sin categoria | Menos trabajo manual al registrar movimientos |
 | PEND-PROD-03 | Metas de ahorro y seguimiento de avance | `POST/GET /api/savings-goals` | Planeacion de objetivos con avance medible |
-| PEND-PROD-04 | Alertas y recordatorios por eventos (vencimientos, sobrepresupuesto, saldo bajo) | Kafka + `notification-service` | Alertas oportunas y accionables |
+| PEND-PROD-04 | Alertas y recordatorios por eventos (vencimientos, sobrepresupuesto, saldo bajo) | Implementado por eventos `subscription.charge.due.soon`, `budget.threshold.exceeded`, `account.low.balance` + bandeja local | Alertas oportunas y accionables |
 | PEND-PROD-05 | Cierre mensual y bloqueo de periodo | `POST /api/period-close` | Integridad historica y menor riesgo de cambios tardios |
 
 ### 7.2 Should (muy recomendado)
@@ -402,8 +427,16 @@ Nota: por decision actual, se excluye conciliacion bancaria en esta etapa.
 | ID | Caso | Endpoint/Componente propuesto | Resultado esperado |
 |---|---|---|---|
 | PEND-PROD-06 | Adjuntos por transaccion (ticket, foto, PDF) | `POST /api/transactions/{id}/attachments` | Evidencia de gastos e ingresos |
-| PEND-PROD-07 | Exportacion de reportes y movimientos | `GET /api/exports/*` | Portabilidad de informacion |
-| PEND-PROD-08 | Backup y restore de datos de usuario | `POST /api/backups` y `POST /api/restores` | Recuperacion ante perdida o error |
+| PEND-PROD-07 | Exportacion de reportes y movimientos | Implementado base `GET /api/exports/transactions.csv` | Portabilidad de informacion |
+| PEND-PROD-08 | Backup y restore de datos de usuario | Implementado base para notificaciones: `GET /api/backups/notifications`, `POST /api/restores/notifications` | Recuperacion ante perdida o error |
+
+Estado actualizado de esos casos:
+
+1. PEND-PROD-03 implementado: `POST /api/savings-goals`, `GET /api/savings-goals`, `PATCH /api/savings-goals/{id}/progress`, `PATCH /api/savings-goals/{id}/deactivate`.
+2. PEND-PROD-05 implementado base: `POST /api/period-close`, `PATCH /api/period-close/reopen`, `GET /api/period-close`; bloquea registro y mantenimiento de transacciones en periodos cerrados.
+3. PEND-PROD-05 extendido: tambien bloquea creacion/ajuste de presupuestos y generacion/confirmacion/omision de cargos de suscripcion en periodos cerrados.
+4. PEND-PROD-06 implementado base: `POST /api/transactions/{transactionId}/attachments`, `GET /api/transactions/{transactionId}/attachments`.
+5. PEND-PROD-08 extendido a backup/restore integral base: `GET /api/backups/system`, `POST /api/restores/system`.
 
 ### 7.3 Nice-to-have (evolucion)
 
@@ -418,9 +451,20 @@ Eventos sugeridos a publicar:
 
 1. `transaction.created`
 2. `subscription.charge.generated`
-3. `budget.threshold.exceeded`
-4. `account.low.balance`
-5. `period.closed`
+3. `subscription.charge.confirmed`
+4. `budget.threshold.exceeded`
+5. `account.low.balance`
+6. `subscription.charge.due.soon`
+7. `period.closed`
+
+Estado actual de implementacion:
+
+1. Publicacion disponible para `transaction.created`.
+2. Publicacion disponible para `subscription.charge.generated`.
+3. Publicacion disponible para `subscription.charge.confirmed`.
+4. Publicacion disponible para `account.low.balance` cuando una cuenta debito queda en o por debajo del umbral.
+5. Publicacion desacoplada de la logica transaccional (errores en Kafka no interrumpen operaciones criticas).
+6. Habilitacion por configuracion: `app.events.kafka.enabled` (apagado por defecto).
 
 Consumidores sugeridos:
 
@@ -428,6 +472,12 @@ Consumidores sugeridos:
 2. `reminder-service` (recordatorios programados)
 3. `analytics-service` (metricas e insights)
 4. `audit-service` (trazabilidad de eventos)
+
+Avance actual en consumidores:
+
+1. Consumidor local inicial implementado para eventos Kafka (`transaction.created`, `subscription.charge.generated`, `subscription.charge.confirmed`, `account.low.balance`).
+2. Bandeja local in-memory expuesta por `GET /api/notifications` para inspeccion operativa.
+3. Pendiente: externalizar a `notification-service` dedicado con canales push/email/in-app.
 
 Reglas de operacion recomendadas:
 

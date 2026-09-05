@@ -11,3 +11,8 @@ spring:
 
   flyway:
     enabled: false
+
+app:
+  events:
+    reminders:
+      enabled: false

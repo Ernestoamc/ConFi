@@ -2,7 +2,6 @@ package com.confi.domain.service;
 
 import com.confi.domain.model.Account;
 import com.confi.domain.model.Transaction;
-import com.confi.domain.model.TransactionType;
 import com.confi.domain.port.in.TransactionQueryUseCase;
 import com.confi.domain.port.out.AccountRepository;
 import com.confi.domain.port.out.TransactionRepository;

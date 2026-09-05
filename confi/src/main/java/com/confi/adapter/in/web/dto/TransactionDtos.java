@@ -41,6 +41,19 @@ public class TransactionDtos {
     ) {}
 
     public record CancelTransactionRequest(
-            String motivo
+            String motivo,
+            UUID categoriaReversaId
+    ) {}
+
+    public record ReplaceTransactionRequest(
+            @NotNull TransactionType tipo,
+            @NotNull @Positive BigDecimal monto,
+            String nota,
+            @NotNull UUID cuentaOrigenId,
+            UUID cuentaDestinoId,
+            UUID categoriaId,
+            String contraparte,
+            Instant fecha,
+            String motivoReemplazo
     ) {}
 }

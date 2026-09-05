@@ -1,6 +1,10 @@
 package com.confi.adapter.in.web;
 
 import com.confi.domain.port.in.FinancialReportUseCase;
+import com.confi.domain.port.in.BudgetUseCases;
+import com.confi.domain.port.in.BudgetUseCases.BudgetVsActualReport;
+import com.confi.domain.port.in.BudgetUseCases.CategoryBudgetDelta;
+import com.confi.domain.port.in.BudgetUseCases.PeriodScope;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -9,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,6 +30,9 @@ class ReportControllerWebTest {
 
     @MockitoBean
     private FinancialReportUseCase financialReportUseCase;
+
+        @MockitoBean
+        private BudgetUseCases budgetUseCases;
 
     @Test
     void generaEstadoResultadosGeneralConEfectivoInformativo() throws Exception {
@@ -77,5 +85,32 @@ class ReportControllerWebTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cuentaId").value(cuentaId.toString()))
                 .andExpect(jsonPath("$.totalIngresos").value(5000.00));
+    }
+
+    @Test
+    void generaPresupuestoVsRealDesdeReports() throws Exception {
+        BudgetVsActualReport report = new BudgetVsActualReport(
+                Instant.parse("2026-08-01T00:00:00Z"),
+                Instant.parse("2026-08-31T23:59:59Z"),
+                PeriodScope.MENSUAL,
+                new BigDecimal("8000.00"),
+                new BigDecimal("7600.00"),
+                new BigDecimal("400.00"),
+                List.of(new CategoryBudgetDelta(UUID.randomUUID(), new BigDecimal("2000.00"), new BigDecimal("1800.00")))
+        );
+
+        when(budgetUseCases.presupuestoVsReal(
+                eq(Instant.parse("2026-08-01T00:00:00Z")),
+                eq(Instant.parse("2026-08-31T23:59:59Z")),
+                eq(PeriodScope.MENSUAL)
+        )).thenReturn(report);
+
+        mockMvc.perform(get("/api/reports/budget-vs-actual")
+                        .param("desde", "2026-08-01T00:00:00Z")
+                        .param("hasta", "2026-08-31T23:59:59Z")
+                        .param("scope", "MENSUAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.scope").value("MENSUAL"))
+                .andExpect(jsonPath("$.diferencia").value(400.00));
     }
 }

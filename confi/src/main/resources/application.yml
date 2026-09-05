@@ -20,6 +20,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 server:
   port: 8080
 
@@ -28,3 +34,14 @@ management:
     web:
       exposure:
         include: health,info
+
+app:
+  events:
+    kafka:
+      enabled: ${KAFKA_EVENTS_ENABLED:false}
+      topic: ${KAFKA_EVENTS_TOPIC:confi.events}
+      group-id: ${KAFKA_EVENTS_GROUP_ID:confi.notification.local}
+    reminders:
+      enabled: ${REMINDER_EVENTS_ENABLED:true}
+      days-ahead: ${REMINDER_DAYS_AHEAD:3}
+      cron: ${REMINDER_CRON:0 0 8 * * *}

@@ -6,6 +6,7 @@ import com.confi.domain.model.Transaction;
 import com.confi.domain.port.in.TransactionMaintenanceUseCase;
 import com.confi.domain.port.in.TransactionQueryUseCase;
 import com.confi.domain.port.in.RegisterTransactionUseCase;
+import com.confi.domain.service.CategorizationRuleService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,6 +43,9 @@ class TransactionControllerWebTest {
 
         @MockitoBean
         private TransactionMaintenanceUseCase transactionMaintenanceUseCase;
+
+        @MockitoBean
+        private CategorizationRuleService categorizationRuleService;
 
         @MockitoBean
     private TransactionWebMapper mapper;
@@ -123,6 +128,104 @@ class TransactionControllerWebTest {
                     .content("{\"nota\":\"Nueva nota\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nota").value("Nueva nota"));
+            }
+
+            @Test
+            void reemplazaTransaccionDeFormaSegura() throws Exception {
+            UUID cuentaId = UUID.randomUUID();
+            UUID categoriaId = UUID.randomUUID();
+            Transaction tx = Transaction.gasto(new BigDecimal("80.00"), "Ajuste", cuentaId,
+                categoriaId, null, null, Instant.parse("2026-08-11T12:00:00Z"));
+            tx.registrarSaldosResultantes(new BigDecimal("920.00"), null);
+
+            when(transactionMaintenanceUseCase.reemplazar(eq(tx.getId()), any(), eq("Correccion"))).thenReturn(tx);
+            when(mapper.toResponse(tx)).thenReturn(new com.confi.adapter.in.web.dto.TransactionDtos.TransactionResponse(
+                tx.getId(), tx.getFecha(), tx.getMonto(), tx.getNota(), tx.getTipo(), tx.getCuentaOrigenId(),
+                tx.getCuentaDestinoId(), tx.getCategoriaId(), tx.getContraparte(),
+                tx.getSaldoOrigenDespues(), tx.getSaldoDestinoDespues()
+            ));
+
+            String payload = """
+                {
+                  "tipo": "GASTO",
+                  "monto": 80.00,
+                  "nota": "Ajuste",
+                  "cuentaOrigenId": "%s",
+                  "categoriaId": "%s",
+                  "motivoReemplazo": "Correccion"
+                }
+                """.formatted(cuentaId, categoriaId);
+
+            mockMvc.perform(put("/api/transactions/{id}", tx.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.monto").value(80.00));
+            }
+
+            @Test
+            void usaReglaDeCategorizacionCuandoNoSeEnviaCategoriaEnGasto() throws Exception {
+            UUID cuentaId = UUID.randomUUID();
+            UUID categoriaResuelta = UUID.randomUUID();
+            Transaction tx = Transaction.gasto(new BigDecimal("100.00"), "Uber aeropuerto", cuentaId,
+                categoriaResuelta, "Uber", null, Instant.parse("2026-08-10T12:00:00Z"));
+            tx.registrarSaldosResultantes(new BigDecimal("900.00"), null);
+
+            when(categorizationRuleService.resolveCategory("Uber aeropuerto Uber")).thenReturn(categoriaResuelta);
+            when(registerTransactionUseCase.execute(any())).thenReturn(tx);
+            when(mapper.toResponse(tx)).thenReturn(new com.confi.adapter.in.web.dto.TransactionDtos.TransactionResponse(
+                tx.getId(), tx.getFecha(), tx.getMonto(), tx.getNota(), tx.getTipo(), tx.getCuentaOrigenId(),
+                tx.getCuentaDestinoId(), tx.getCategoriaId(), tx.getContraparte(),
+                tx.getSaldoOrigenDespues(), tx.getSaldoDestinoDespues()
+            ));
+
+            String payload = """
+                {
+                  "tipo": "GASTO",
+                  "monto": 100.00,
+                  "nota": "Uber aeropuerto",
+                  "cuentaOrigenId": "%s",
+                  "contraparte": "Uber"
+                }
+                """.formatted(cuentaId);
+
+            mockMvc.perform(post("/api/transactions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.categoriaId").value(categoriaResuelta.toString()));
+            }
+
+            @Test
+            void buscaTransaccionesConFiltros() throws Exception {
+            UUID cuentaId = UUID.randomUUID();
+            UUID categoriaId = UUID.randomUUID();
+            Instant fecha = Instant.parse("2026-08-20T12:00:00Z");
+            Transaction tx = Transaction.gasto(new BigDecimal("150.00"), "Supermercado", cuentaId,
+                categoriaId, "Tienda", null, fecha);
+            tx.registrarSaldosResultantes(new BigDecimal("850.00"), null);
+
+            when(transactionQueryUseCase.listar(eq(Instant.parse("2026-08-01T00:00:00Z")),
+                eq(Instant.parse("2026-08-31T23:59:59Z")), eq(cuentaId)))
+                .thenReturn(List.of(tx));
+
+            when(mapper.toResponse(tx)).thenReturn(new com.confi.adapter.in.web.dto.TransactionDtos.TransactionResponse(
+                tx.getId(), tx.getFecha(), tx.getMonto(), tx.getNota(), tx.getTipo(), tx.getCuentaOrigenId(),
+                tx.getCuentaDestinoId(), tx.getCategoriaId(), tx.getContraparte(),
+                tx.getSaldoOrigenDespues(), tx.getSaldoDestinoDespues()
+            ));
+
+            mockMvc.perform(get("/api/transactions/search")
+                    .param("desde", "2026-08-01T00:00:00Z")
+                    .param("hasta", "2026-08-31T23:59:59Z")
+                    .param("cuentaId", cuentaId.toString())
+                    .param("tipo", "GASTO")
+                    .param("categoriaId", categoriaId.toString())
+                    .param("texto", "super")
+                    .param("montoMin", "100")
+                    .param("montoMax", "200"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nota").value("Supermercado"));
             }
 
     private static String validPayload() {
