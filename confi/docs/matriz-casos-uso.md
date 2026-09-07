@@ -435,15 +435,18 @@ Estado actualizado de esos casos:
 1. PEND-PROD-03 implementado: `POST /api/savings-goals`, `GET /api/savings-goals`, `PATCH /api/savings-goals/{id}/progress`, `PATCH /api/savings-goals/{id}/deactivate`.
 2. PEND-PROD-05 implementado base: `POST /api/period-close`, `PATCH /api/period-close/reopen`, `GET /api/period-close`; bloquea registro y mantenimiento de transacciones en periodos cerrados.
 3. PEND-PROD-05 extendido: tambien bloquea creacion/ajuste de presupuestos y generacion/confirmacion/omision de cargos de suscripcion en periodos cerrados.
+4. PEND-PROD-05 extendido: historial de eventos de periodo disponible en `GET /api/period-close/events?limit={1..500}` para auditar cierres, reaperturas y rechazos.
 4. PEND-PROD-06 implementado base: `POST /api/transactions/{transactionId}/attachments`, `GET /api/transactions/{transactionId}/attachments`.
 5. PEND-PROD-08 extendido a backup/restore integral base: `GET /api/backups/system`, `POST /api/restores/system`.
+6. PEND-PROD-08 extendido: backup/restore integral ahora preserva historial de eventos de periodo (cierres, reaperturas y rechazos).
+7. PEND-PROD-09 implementado base: `GET /api/insights?desde={isoInstant}&hasta={isoInstant}&cuentaId={uuid?}&top={1..20}` con top categorias de gasto, tasa de ahorro y recomendaciones.
+8. PEND-PROD-10 implementado base: recordatorios adaptativos por frecuencia y monto con `priority`, `daysUntilDue` y `adaptiveWindowDays` en evento `subscription.charge.due.soon`.
 
 ### 7.3 Nice-to-have (evolucion)
 
 | ID | Caso | Endpoint/Componente propuesto | Resultado esperado |
 |---|---|---|---|
-| PEND-PROD-09 | Motor de insights personales (patrones de gasto, recomendaciones) | `GET /api/insights` | Mejor toma de decisiones financieras |
-| PEND-PROD-10 | Recordatorios inteligentes adaptativos | Kafka + reglas de frecuencia/uso | Menor olvido en habitos financieros |
+| PEND-PROD-10 | Recordatorios inteligentes adaptativos | Implementado base sobre `subscription.charge.due.soon` con prioridad y ventana adaptativa | Menor olvido en habitos financieros |
 
 ### 7.4 Arquitectura de eventos con Kafka (requerida)
 
@@ -456,6 +459,9 @@ Eventos sugeridos a publicar:
 5. `account.low.balance`
 6. `subscription.charge.due.soon`
 7. `period.closed`
+8. `period.reopened`
+9. `period.close.rejected`
+10. `period.reopen.rejected`
 
 Estado actual de implementacion:
 
@@ -463,8 +469,12 @@ Estado actual de implementacion:
 2. Publicacion disponible para `subscription.charge.generated`.
 3. Publicacion disponible para `subscription.charge.confirmed`.
 4. Publicacion disponible para `account.low.balance` cuando una cuenta debito queda en o por debajo del umbral.
-5. Publicacion desacoplada de la logica transaccional (errores en Kafka no interrumpen operaciones criticas).
-6. Habilitacion por configuracion: `app.events.kafka.enabled` (apagado por defecto).
+5. Publicacion disponible para `period.closed` al cerrar un periodo por API.
+6. Publicacion disponible para `period.reopened` al reabrir un periodo por API.
+7. Publicacion disponible para `period.close.rejected` cuando se intenta cerrar un periodo ya cerrado.
+8. Publicacion disponible para `period.reopen.rejected` cuando se intenta reabrir un periodo no cerrado.
+9. Publicacion desacoplada de la logica transaccional (errores en Kafka no interrumpen operaciones criticas).
+10. Habilitacion por configuracion: `app.events.kafka.enabled` (apagado por defecto).
 
 Consumidores sugeridos:
 
@@ -475,7 +485,7 @@ Consumidores sugeridos:
 
 Avance actual en consumidores:
 
-1. Consumidor local inicial implementado para eventos Kafka (`transaction.created`, `subscription.charge.generated`, `subscription.charge.confirmed`, `account.low.balance`).
+1. Consumidor local inicial implementado para eventos Kafka (`transaction.created`, `subscription.charge.generated`, `subscription.charge.confirmed`, `account.low.balance`, `period.closed`, `period.reopened`, `period.close.rejected`, `period.reopen.rejected`).
 2. Bandeja local in-memory expuesta por `GET /api/notifications` para inspeccion operativa.
 3. Pendiente: externalizar a `notification-service` dedicado con canales push/email/in-app.
 

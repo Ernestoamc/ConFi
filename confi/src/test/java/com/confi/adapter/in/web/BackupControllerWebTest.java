@@ -104,10 +104,21 @@ class BackupControllerWebTest {
         when(savingsGoalService.snapshot()).thenReturn(List.of());
         when(transactionAttachmentService.listAll()).thenReturn(List.of());
         when(periodCloseService.listClosed()).thenReturn(Set.of(YearMonth.of(2026, 8)));
+        when(periodCloseService.snapshotEvents()).thenReturn(List.of(
+          new PeriodCloseService.PeriodEventLog(
+            "period.closed",
+            "2026-08",
+            2026,
+            8,
+            null,
+            Instant.parse("2026-09-01T00:00:00Z")
+          )
+        ));
 
         mockMvc.perform(get("/api/backups/system"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.closedPeriods[0]").value("2026-08"));
+            .andExpect(jsonPath("$.closedPeriods[0]").value("2026-08"))
+            .andExpect(jsonPath("$.periodEvents[0].eventType").value("period.closed"));
       }
 
       @Test
@@ -117,6 +128,7 @@ class BackupControllerWebTest {
         when(savingsGoalService.restore(anyList())).thenReturn(3);
         when(transactionAttachmentService.restore(anyList())).thenReturn(4);
         when(periodCloseService.restoreClosed(anySet())).thenReturn(1);
+        when(periodCloseService.restoreEvents(anyList())).thenReturn(2);
 
         mockMvc.perform(post("/api/restores/system")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -126,7 +138,25 @@ class BackupControllerWebTest {
                     "rules": [],
                     "goals": [],
                     "attachments": [],
-                    "closedPeriods": ["2026-08"]
+                    "closedPeriods": ["2026-08"],
+                    "periodEvents": [
+                      {
+                        "eventType": "period.closed",
+                        "period": "2026-08",
+                        "year": 2026,
+                        "month": 8,
+                        "reason": null,
+                        "occurredAt": "2026-09-01T00:00:00Z"
+                      },
+                      {
+                        "eventType": "period.close.rejected",
+                        "period": "2026-08",
+                        "year": 2026,
+                        "month": 8,
+                        "reason": "already-closed",
+                        "occurredAt": "2026-09-01T00:01:00Z"
+                      }
+                    ]
                   }
                   """))
             .andExpect(status().isOk())
@@ -134,6 +164,7 @@ class BackupControllerWebTest {
             .andExpect(jsonPath("$.rules").value(2))
             .andExpect(jsonPath("$.goals").value(3))
             .andExpect(jsonPath("$.attachments").value(4))
-            .andExpect(jsonPath("$.closedPeriods").value(1));
+            .andExpect(jsonPath("$.closedPeriods").value(1))
+            .andExpect(jsonPath("$.periodEvents").value(2));
       }
 }

@@ -64,4 +64,85 @@ class KafkaDomainEventListenerTest {
                 assertThat(item.title()).isEqualTo("Alerta de saldo bajo");
                 assertThat(item.message()).contains("BBVA Debito").contains("450.00").contains("500.00");
         }
+
+    @Test
+    void transformaEventoDeCierreDePeriodoEnNotificacionLegible() {
+        String raw = """
+                {
+                    "eventId": "aabbccdd-c56a-4a39-a79a-b8ef3af8f100",
+                    "eventType": "period.closed",
+                    "eventVersion": 1,
+                    "occurredAt": "2026-09-01T00:00:00Z",
+                    "payload": {
+                        "period": "2026-08",
+                        "year": 2026,
+                        "month": 8
+                    }
+                }
+                """;
+
+        listener.onMessage(raw);
+
+        ArgumentCaptor<NotificationItem> captor = ArgumentCaptor.forClass(NotificationItem.class);
+        verify(inbox).add(captor.capture());
+        NotificationItem item = captor.getValue();
+
+        assertThat(item.title()).isEqualTo("Periodo cerrado");
+        assertThat(item.message()).contains("2026-08").contains("bloqueados");
+    }
+
+    @Test
+    void transformaEventoDeRechazoDeCierreEnNotificacionLegible() {
+        String raw = """
+                {
+                    "eventId": "3dbbccdd-c56a-4a39-a79a-b8ef3af8f100",
+                    "eventType": "period.close.rejected",
+                    "eventVersion": 1,
+                    "occurredAt": "2026-09-01T00:00:00Z",
+                    "payload": {
+                        "period": "2026-08",
+                        "year": 2026,
+                        "month": 8,
+                        "reason": "already-closed"
+                    }
+                }
+                """;
+
+        listener.onMessage(raw);
+
+        ArgumentCaptor<NotificationItem> captor = ArgumentCaptor.forClass(NotificationItem.class);
+        verify(inbox).add(captor.capture());
+        NotificationItem item = captor.getValue();
+
+        assertThat(item.title()).isEqualTo("Cierre de periodo rechazado");
+        assertThat(item.message()).contains("2026-08").contains("ya estaba cerrado");
+    }
+
+    @Test
+    void transformaRecordatorioAdaptativoConPrioridad() {
+        String raw = """
+                {
+                    "eventId": "9dbbccdd-c56a-4a39-a79a-b8ef3af8f111",
+                    "eventType": "subscription.charge.due.soon",
+                    "eventVersion": 1,
+                    "occurredAt": "2026-09-01T00:00:00Z",
+                    "payload": {
+                        "subscriptionName": "Netflix",
+                        "dueDate": "2026-09-02",
+                        "amount": "249.00",
+                        "priority": "HIGH",
+                        "daysUntilDue": 1
+                    }
+                }
+                """;
+
+        listener.onMessage(raw);
+
+        ArgumentCaptor<NotificationItem> captor = ArgumentCaptor.forClass(NotificationItem.class);
+        verify(inbox).add(captor.capture());
+        NotificationItem item = captor.getValue();
+
+        assertThat(item.title()).isEqualTo("Recordatorio de vencimiento");
+        assertThat(item.message()).contains("HIGH").contains("vence en 1 dia");
+    }
 }

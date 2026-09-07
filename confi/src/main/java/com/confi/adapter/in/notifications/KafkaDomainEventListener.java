@@ -66,6 +66,10 @@ public class KafkaDomainEventListener {
             case "account.low.balance" -> "Alerta de saldo bajo";
             case "budget.threshold.exceeded" -> "Alerta de presupuesto excedido";
             case "subscription.charge.due.soon" -> "Recordatorio de vencimiento";
+            case "period.closed" -> "Periodo cerrado";
+            case "period.reopened" -> "Periodo reabierto";
+            case "period.close.rejected" -> "Cierre de periodo rechazado";
+            case "period.reopen.rejected" -> "Reapertura de periodo rechazada";
             default -> "Evento de negocio";
         };
 
@@ -113,7 +117,27 @@ public class KafkaDomainEventListener {
             Object name = payload.get("subscriptionName");
             Object dueDate = payload.get("dueDate");
             Object amount = payload.get("amount");
-            return "Recordatorio: " + name + " vence el " + dueDate + " por " + amount;
+            Object priority = payload.get("priority");
+            Object daysUntilDue = payload.get("daysUntilDue");
+            return "Recordatorio (" + priority + "): " + name + " vence en " + daysUntilDue + " dia(s), fecha " + dueDate + " por " + amount;
+        }
+        if ("period.closed".equals(eventType)) {
+            Object period = payload.get("period");
+            return "Se cerro el periodo " + period + ". Los cambios historicos quedan bloqueados.";
+        }
+        if ("period.reopened".equals(eventType)) {
+            Object period = payload.get("period");
+            return "Se reabrio el periodo " + period + ". Se permiten ajustes nuevamente.";
+        }
+        if ("period.close.rejected".equals(eventType)) {
+            Object period = payload.get("period");
+            Object reason = payload.get("reason");
+            return "No se pudo cerrar el periodo " + period + " porque ya estaba cerrado (" + reason + ").";
+        }
+        if ("period.reopen.rejected".equals(eventType)) {
+            Object period = payload.get("period");
+            Object reason = payload.get("reason");
+            return "No se pudo reabrir el periodo " + period + " porque no estaba cerrado (" + reason + ").";
         }
         return "Se recibio el evento " + eventType;
     }

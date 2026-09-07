@@ -44,4 +44,6 @@ app:
     reminders:
       enabled: ${REMINDER_EVENTS_ENABLED:true}
       days-ahead: ${REMINDER_DAYS_AHEAD:3}
+      max-days-ahead: ${REMINDER_MAX_DAYS_AHEAD:15}
+      high-amount-threshold: ${REMINDER_HIGH_AMOUNT_THRESHOLD:1000}
       cron: ${REMINDER_CRON:0 0 8 * * *}

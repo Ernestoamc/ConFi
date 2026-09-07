@@ -8,7 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Set;
 
 import static org.mockito.Mockito.verify;
@@ -59,4 +61,32 @@ class PeriodCloseControllerWebTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.closed").value(false));
     }
+
+        @Test
+        void listaEventosDePeriodoConLimite() throws Exception {
+        when(service.listEvents(2)).thenReturn(List.of(
+            new PeriodCloseService.PeriodEventLog(
+                "period.reopen.rejected",
+                "2026-08",
+                2026,
+                8,
+                "not-closed",
+                Instant.parse("2026-09-01T01:00:00Z")
+            ),
+            new PeriodCloseService.PeriodEventLog(
+                "period.closed",
+                "2026-08",
+                2026,
+                8,
+                null,
+                Instant.parse("2026-09-01T00:00:00Z")
+            )
+        ));
+
+        mockMvc.perform(get("/api/period-close/events?limit=2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].eventType").value("period.reopen.rejected"))
+            .andExpect(jsonPath("$[0].reason").value("not-closed"))
+            .andExpect(jsonPath("$[1].eventType").value("period.closed"));
+        }
 }

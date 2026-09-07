@@ -83,8 +83,18 @@ public class BackupController {
                 .toList();
 
         List<String> closedPeriods = periodCloseService.listClosed().stream().map(YearMonth::toString).toList();
+        List<PeriodEventResponse> periodEvents = periodCloseService.snapshotEvents().stream()
+                .map(event -> new PeriodEventResponse(
+                        event.eventType(),
+                        event.period(),
+                        event.year(),
+                        event.month(),
+                        event.reason(),
+                        event.occurredAt()
+                ))
+                .toList();
 
-        return new SystemBackupResponse(Instant.now(), notifications, rules, goals, attachments, closedPeriods);
+        return new SystemBackupResponse(Instant.now(), notifications, rules, goals, attachments, closedPeriods, periodEvents);
     }
 
     @PostMapping("/restores/system")
@@ -100,8 +110,18 @@ public class BackupController {
                 .map(a -> new TransactionAttachmentService.Attachment(a.id(), a.transactionId(), a.fileName(), a.contentType(), a.url(), a.uploadedAt()))
                 .toList());
         int closedPeriods = periodCloseService.restoreClosed(request.closedPeriods().stream().map(YearMonth::parse).collect(java.util.stream.Collectors.toSet()));
+        int periodEvents = periodCloseService.restoreEvents(request.periodEvents().stream()
+                .map(e -> new PeriodCloseService.PeriodEventLog(
+                        e.eventType(),
+                        e.period(),
+                        e.year(),
+                        e.month(),
+                        e.reason(),
+                        e.occurredAt()
+                ))
+                .toList());
 
-        return new SystemRestoreResponse(notifications, rules, goals, attachments, closedPeriods);
+        return new SystemRestoreResponse(notifications, rules, goals, attachments, closedPeriods, periodEvents);
     }
 
     private static NotificationItemResponse toResponse(NotificationItem item) {
@@ -150,7 +170,8 @@ public class BackupController {
             List<RuleResponse> rules,
             List<SavingsGoalResponse> goals,
             List<AttachmentResponse> attachments,
-            List<String> closedPeriods
+            List<String> closedPeriods,
+            List<PeriodEventResponse> periodEvents
     ) {
     }
 
@@ -159,7 +180,8 @@ public class BackupController {
             @NotNull List<RuleResponse> rules,
             @NotNull List<SavingsGoalResponse> goals,
             @NotNull List<AttachmentResponse> attachments,
-            @NotNull List<String> closedPeriods
+            @NotNull List<String> closedPeriods,
+            @NotNull List<PeriodEventResponse> periodEvents
     ) {
     }
 
@@ -168,7 +190,8 @@ public class BackupController {
             int rules,
             int goals,
             int attachments,
-            int closedPeriods
+            int closedPeriods,
+            int periodEvents
     ) {
     }
 
@@ -216,6 +239,16 @@ public class BackupController {
             String contentType,
             String url,
             Instant uploadedAt
+    ) {
+    }
+
+    public record PeriodEventResponse(
+            String eventType,
+            String period,
+            Integer year,
+            Integer month,
+            String reason,
+            Instant occurredAt
     ) {
     }
 }

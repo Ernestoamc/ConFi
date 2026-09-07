@@ -68,7 +68,14 @@ Variables de recordatorios:
 
 - REMINDER_EVENTS_ENABLED (default: true)
 - REMINDER_DAYS_AHEAD (default: 3)
+- REMINDER_MAX_DAYS_AHEAD (default: 15)
+- REMINDER_HIGH_AMOUNT_THRESHOLD (default: 1000)
 - REMINDER_CRON (default: 0 0 8 * * *)
+
+Recordatorios adaptativos:
+
+- El sistema ajusta la ventana de aviso por frecuencia de suscripcion y monto.
+- El evento `subscription.charge.due.soon` incluye `priority`, `daysUntilDue`, `adaptiveWindowDays` y `reminderMode=adaptive`.
 
 Comportamiento importante:
 
@@ -115,6 +122,7 @@ Comportamiento importante:
 - POST /api/period-close
 - PATCH /api/period-close/reopen
 - GET /api/period-close
+- GET /api/period-close/events?limit={1..500}
 
 ### Adjuntos por transaccion
 
@@ -155,6 +163,10 @@ Comportamiento importante:
 - GET /api/reports/income-statement?desde={isoInstant}&hasta={isoInstant}&cuentaId={uuid?}
 - GET /api/reports/budget-vs-actual?desde={yyyy-MM-dd}&hasta={yyyy-MM-dd}&scope={MENSUAL|SEMANAL|QUINCENAL|TODOS}
 
+### Insights
+
+- GET /api/insights?desde={isoInstant}&hasta={isoInstant}&cuentaId={uuid?}&top={1..20}
+
 ### Notificaciones
 
 - GET /api/notifications?limit={1..200}
@@ -171,6 +183,10 @@ Comportamiento importante:
 - GET /api/backups/system
 - POST /api/restores/system
 
+Notas de backup integral:
+
+- Incluye periodos cerrados y tambien historial de eventos de periodo (cierres, reaperturas y rechazos).
+
 ## Eventos de dominio publicados
 
 - transaction.created
@@ -179,6 +195,10 @@ Comportamiento importante:
 - account.low.balance
 - budget.threshold.exceeded
 - subscription.charge.due.soon
+- period.closed
+- period.reopened
+- period.close.rejected
+- period.reopen.rejected
 
 ## Observabilidad
 
