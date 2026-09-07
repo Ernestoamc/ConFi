@@ -53,20 +53,6 @@ public class SubscriptionDueSoonReminderService {
         this(chargeRepository, subscriptionRepository, eventPublisher, 3, 15, new java.math.BigDecimal("1000"));
     }
 
-    public SubscriptionDueSoonReminderService(SubscriptionChargeRepository chargeRepository,
-                                              SubscriptionRepository subscriptionRepository,
-                                              DomainEventPublisher eventPublisher,
-                                              int daysAhead,
-                                              int maxDaysAhead,
-                                              java.math.BigDecimal highAmountThreshold) {
-        this.chargeRepository = chargeRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.eventPublisher = eventPublisher;
-        this.daysAhead = daysAhead;
-        this.maxDaysAhead = maxDaysAhead;
-        this.highAmountThreshold = highAmountThreshold;
-    }
-
     @Scheduled(cron = "${app.events.reminders.cron:0 0 8 * * *}")
     public void publishDueSoonReminders() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);

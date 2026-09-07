@@ -86,8 +86,12 @@ public class SubscriptionChargeService implements SubscriptionChargeUseCases {
     public SubscriptionCharge omitir(UUID chargeId) {
         SubscriptionCharge charge = buscarCharge(chargeId);
         validarPeriodoAbierto(charge, "omision de cargo de suscripcion");
+        Subscription subscription = subscriptionRepository.findById(charge.getSubscripcionId())
+                .orElseThrow(() -> new NoSuchElementException("Suscripción no encontrada: " + charge.getSubscripcionId()));
         charge.omitir();
-        return chargeRepository.save(charge);
+        SubscriptionCharge saved = chargeRepository.save(charge);
+        publicarEventoCargoOmitido(saved, subscription);
+        return saved;
     }
 
     private SubscriptionCharge buscarCharge(UUID id) {
@@ -103,6 +107,18 @@ public class SubscriptionChargeService implements SubscriptionChargeUseCases {
                 "accountId", subscription.getCuentaId().toString(),
                 "amount", charge.getMontoEsperado().toPlainString(),
                 "confirmedAt", Instant.now().toString()
+        ));
+        domainEventPublisher.publish(event);
+    }
+
+    private void publicarEventoCargoOmitido(SubscriptionCharge charge, Subscription subscription) {
+        DomainEvent event = DomainEvent.create("subscription.charge.skipped", Map.of(
+                "chargeId", charge.getId().toString(),
+                "subscriptionId", subscription.getId().toString(),
+                "accountId", subscription.getCuentaId().toString(),
+                "amount", charge.getMontoEsperado().toPlainString(),
+                "dueDate", charge.getFechaEsperada().toString(),
+                "skippedAt", Instant.now().toString()
         ));
         domainEventPublisher.publish(event);
     }

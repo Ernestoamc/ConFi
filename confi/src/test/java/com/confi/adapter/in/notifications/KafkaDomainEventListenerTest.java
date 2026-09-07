@@ -145,4 +145,30 @@ class KafkaDomainEventListenerTest {
         assertThat(item.title()).isEqualTo("Recordatorio de vencimiento");
         assertThat(item.message()).contains("HIGH").contains("vence en 1 dia");
     }
+
+    @Test
+    void transformaEventoCargoOmitidoEnNotificacionLegible() {
+        String raw = """
+                {
+                    "eventId": "0dbbccdd-c56a-4a39-a79a-b8ef3af8f111",
+                    "eventType": "subscription.charge.skipped",
+                    "eventVersion": 1,
+                    "occurredAt": "2026-09-01T00:00:00Z",
+                    "payload": {
+                        "chargeId": "11111111-1111-1111-1111-111111111111",
+                        "amount": "199.00",
+                        "dueDate": "2026-09-03"
+                    }
+                }
+                """;
+
+        listener.onMessage(raw);
+
+        ArgumentCaptor<NotificationItem> captor = ArgumentCaptor.forClass(NotificationItem.class);
+        verify(inbox).add(captor.capture());
+        NotificationItem item = captor.getValue();
+
+        assertThat(item.title()).isEqualTo("Cargo de suscripcion omitido");
+        assertThat(item.message()).contains("199.00").contains("2026-09-03");
+    }
 }

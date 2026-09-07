@@ -441,6 +441,7 @@ Estado actualizado de esos casos:
 6. PEND-PROD-08 extendido: backup/restore integral ahora preserva historial de eventos de periodo (cierres, reaperturas y rechazos).
 7. PEND-PROD-09 implementado base: `GET /api/insights?desde={isoInstant}&hasta={isoInstant}&cuentaId={uuid?}&top={1..20}` con top categorias de gasto, tasa de ahorro y recomendaciones.
 8. PEND-PROD-10 implementado base: recordatorios adaptativos por frecuencia y monto con `priority`, `daysUntilDue` y `adaptiveWindowDays` en evento `subscription.charge.due.soon`.
+9. PEND-PROD-10 hardening: metricas de efectividad disponibles en `GET /api/notifications/reminder-metrics` (reminded, confirmedAfterReminder, skippedAfterReminder, unresolved, conversionRate).
 
 ### 7.3 Nice-to-have (evolucion)
 
@@ -455,26 +456,28 @@ Eventos sugeridos a publicar:
 1. `transaction.created`
 2. `subscription.charge.generated`
 3. `subscription.charge.confirmed`
-4. `budget.threshold.exceeded`
-5. `account.low.balance`
-6. `subscription.charge.due.soon`
-7. `period.closed`
-8. `period.reopened`
-9. `period.close.rejected`
-10. `period.reopen.rejected`
+4. `subscription.charge.skipped`
+5. `budget.threshold.exceeded`
+6. `account.low.balance`
+7. `subscription.charge.due.soon`
+8. `period.closed`
+9. `period.reopened`
+10. `period.close.rejected`
+11. `period.reopen.rejected`
 
 Estado actual de implementacion:
 
 1. Publicacion disponible para `transaction.created`.
 2. Publicacion disponible para `subscription.charge.generated`.
 3. Publicacion disponible para `subscription.charge.confirmed`.
-4. Publicacion disponible para `account.low.balance` cuando una cuenta debito queda en o por debajo del umbral.
-5. Publicacion disponible para `period.closed` al cerrar un periodo por API.
-6. Publicacion disponible para `period.reopened` al reabrir un periodo por API.
-7. Publicacion disponible para `period.close.rejected` cuando se intenta cerrar un periodo ya cerrado.
-8. Publicacion disponible para `period.reopen.rejected` cuando se intenta reabrir un periodo no cerrado.
-9. Publicacion desacoplada de la logica transaccional (errores en Kafka no interrumpen operaciones criticas).
-10. Habilitacion por configuracion: `app.events.kafka.enabled` (apagado por defecto).
+4. Publicacion disponible para `subscription.charge.skipped` al omitir cargos de suscripcion.
+5. Publicacion disponible para `account.low.balance` cuando una cuenta debito queda en o por debajo del umbral.
+6. Publicacion disponible para `period.closed` al cerrar un periodo por API.
+7. Publicacion disponible para `period.reopened` al reabrir un periodo por API.
+8. Publicacion disponible para `period.close.rejected` cuando se intenta cerrar un periodo ya cerrado.
+9. Publicacion disponible para `period.reopen.rejected` cuando se intenta reabrir un periodo no cerrado.
+10. Publicacion desacoplada de la logica transaccional (errores en Kafka no interrumpen operaciones criticas).
+11. Habilitacion por configuracion: `app.events.kafka.enabled` (apagado por defecto).
 
 Consumidores sugeridos:
 
@@ -485,7 +488,7 @@ Consumidores sugeridos:
 
 Avance actual en consumidores:
 
-1. Consumidor local inicial implementado para eventos Kafka (`transaction.created`, `subscription.charge.generated`, `subscription.charge.confirmed`, `account.low.balance`, `period.closed`, `period.reopened`, `period.close.rejected`, `period.reopen.rejected`).
+1. Consumidor local inicial implementado para eventos Kafka (`transaction.created`, `subscription.charge.generated`, `subscription.charge.confirmed`, `subscription.charge.skipped`, `account.low.balance`, `period.closed`, `period.reopened`, `period.close.rejected`, `period.reopen.rejected`).
 2. Bandeja local in-memory expuesta por `GET /api/notifications` para inspeccion operativa.
 3. Pendiente: externalizar a `notification-service` dedicado con canales push/email/in-app.
 

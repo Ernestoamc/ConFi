@@ -55,6 +55,18 @@ public class NotificationController {
         return new NotificationSummaryResponse(notificationInbox.unreadCount());
     }
 
+    @GetMapping("/reminder-metrics")
+    public ReminderMetricsResponse reminderMetrics() {
+        NotificationInbox.ReminderMetrics metrics = notificationInbox.reminderMetrics();
+        return new ReminderMetricsResponse(
+                metrics.reminded(),
+                metrics.confirmedAfterReminder(),
+                metrics.skippedAfterReminder(),
+                metrics.unresolved(),
+                metrics.conversionRate()
+        );
+    }
+
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void clear() {
@@ -79,6 +91,15 @@ public class NotificationController {
 
             public record MarkAllReadResponse(int updated) {
             }
+
+                public record ReminderMetricsResponse(
+                    long reminded,
+                    long confirmedAfterReminder,
+                    long skippedAfterReminder,
+                    long unresolved,
+                    double conversionRate
+                ) {
+                }
 
     public record NotificationResponse(
             UUID id,

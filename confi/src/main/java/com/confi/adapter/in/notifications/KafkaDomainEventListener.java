@@ -63,6 +63,7 @@ public class KafkaDomainEventListener {
             case "transaction.created" -> "Nueva transaccion";
             case "subscription.charge.generated" -> "Cargo de suscripcion generado";
             case "subscription.charge.confirmed" -> "Cargo de suscripcion confirmado";
+            case "subscription.charge.skipped" -> "Cargo de suscripcion omitido";
             case "account.low.balance" -> "Alerta de saldo bajo";
             case "budget.threshold.exceeded" -> "Alerta de presupuesto excedido";
             case "subscription.charge.due.soon" -> "Recordatorio de vencimiento";
@@ -100,6 +101,11 @@ public class KafkaDomainEventListener {
         if ("subscription.charge.confirmed".equals(eventType)) {
             Object amount = payload.get("amount");
             return "Se confirmo un cargo de suscripcion por " + amount;
+        }
+        if ("subscription.charge.skipped".equals(eventType)) {
+            Object amount = payload.get("amount");
+            Object dueDate = payload.get("dueDate");
+            return "Se omitio un cargo de suscripcion por " + amount + " con fecha " + dueDate;
         }
         if ("account.low.balance".equals(eventType)) {
             Object accountName = payload.get("accountName");

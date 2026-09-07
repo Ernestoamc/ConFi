@@ -49,6 +49,10 @@ ConFi es una API de finanzas personales con trazabilidad contable.
 .\mvnw.cmd test
 ```
 
+5. Abrir dashboard web:
+
+- http://localhost:8080/dashboard.html
+
 ## Configuracion
 
 Variables de base de datos:
@@ -173,6 +177,7 @@ Comportamiento importante:
 - PATCH /api/notifications/{id}/read
 - POST /api/notifications/read-all
 - GET /api/notifications/summary
+- GET /api/notifications/reminder-metrics
 - DELETE /api/notifications
 
 ### Export y backup/restore
@@ -192,6 +197,7 @@ Notas de backup integral:
 - transaction.created
 - subscription.charge.generated
 - subscription.charge.confirmed
+- subscription.charge.skipped
 - account.low.balance
 - budget.threshold.exceeded
 - subscription.charge.due.soon

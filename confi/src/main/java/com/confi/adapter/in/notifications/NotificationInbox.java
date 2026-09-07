@@ -4,8 +4,10 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -74,5 +76,45 @@ public class NotificationInbox {
 
     public synchronized void clear() {
         items.clear();
+    }
+
+    public synchronized ReminderMetrics reminderMetrics() {
+        Set<String> remindedCharges = new HashSet<>();
+        Set<String> confirmedCharges = new HashSet<>();
+        Set<String> skippedCharges = new HashSet<>();
+
+        for (NotificationItem item : items) {
+            String eventType = item.eventType();
+            Object chargeIdRaw = item.payload().get("chargeId");
+            if (chargeIdRaw == null) {
+                continue;
+            }
+            String chargeId = String.valueOf(chargeIdRaw);
+
+            if ("subscription.charge.due.soon".equals(eventType)) {
+                remindedCharges.add(chargeId);
+            } else if ("subscription.charge.confirmed".equals(eventType)) {
+                confirmedCharges.add(chargeId);
+            } else if ("subscription.charge.skipped".equals(eventType)) {
+                skippedCharges.add(chargeId);
+            }
+        }
+
+        long reminded = remindedCharges.size();
+        long confirmedAfterReminder = confirmedCharges.stream().filter(remindedCharges::contains).count();
+        long skippedAfterReminder = skippedCharges.stream().filter(remindedCharges::contains).count();
+        long unresolved = Math.max(0, reminded - confirmedAfterReminder - skippedAfterReminder);
+        double conversionRate = reminded > 0 ? (double) confirmedAfterReminder / (double) reminded : 0.0d;
+
+        return new ReminderMetrics(reminded, confirmedAfterReminder, skippedAfterReminder, unresolved, conversionRate);
+    }
+
+    public record ReminderMetrics(
+            long reminded,
+            long confirmedAfterReminder,
+            long skippedAfterReminder,
+            long unresolved,
+            double conversionRate
+    ) {
     }
 }

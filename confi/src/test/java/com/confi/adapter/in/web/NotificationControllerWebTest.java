@@ -110,6 +110,21 @@ class NotificationControllerWebTest {
                 .andExpect(jsonPath("$.unreadCount").value(5));
     }
 
+            @Test
+            void exponeMetricasDeEfectividadDeRecordatorios() throws Exception {
+            when(notificationInbox.reminderMetrics()).thenReturn(
+                new NotificationInbox.ReminderMetrics(10, 6, 2, 2, 0.6)
+            );
+
+            mockMvc.perform(get("/api/notifications/reminder-metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reminded").value(10))
+                .andExpect(jsonPath("$.confirmedAfterReminder").value(6))
+                .andExpect(jsonPath("$.skippedAfterReminder").value(2))
+                .andExpect(jsonPath("$.unresolved").value(2))
+                .andExpect(jsonPath("$.conversionRate").value(0.6));
+            }
+
     @Test
     void limpiaBandeja() throws Exception {
         mockMvc.perform(delete("/api/notifications"))
